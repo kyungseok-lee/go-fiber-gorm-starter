@@ -6,6 +6,7 @@
 *.dylib
 main
 fiber-gorm-starter
+server
 
 # Test binary, built with `go test -c`
 *.test

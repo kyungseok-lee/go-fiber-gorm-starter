@@ -55,3 +55,26 @@ func Logger() fiber.Handler {
 		return err
 	}
 }
+
+// RequestLogger 간소화된 요청 로깅 미들웨어 / Simplified request logging middleware
+func RequestLogger() fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		start := time.Now()
+		rid, _ := c.Locals(RequestIDContextKey).(string)
+		method := c.Method()
+		path := c.Path()
+		err := c.Next()
+		status := c.Response().StatusCode()
+		latency := time.Since(start)
+
+		// Avoid PII in logs; only standard fields
+		zap.L().Info("http",
+			zap.String("method", method),
+			zap.String("path", path),
+			zap.Int("status", status),
+			zap.Duration("latency", latency),
+			zap.String("rid", rid),
+		)
+		return err
+	}
+}

@@ -4,13 +4,12 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/helmet"
-	"github.com/gofiber/fiber/v2/middleware/recover"
-	"github.com/gofiber/swagger"
 	"github.com/kyungseok-lee/fiber-gorm-starter/internal/config"
 	"github.com/kyungseok-lee/fiber-gorm-starter/internal/domain/user"
+	"github.com/kyungseok-lee/fiber-gorm-starter/internal/http/health"
 	"github.com/kyungseok-lee/fiber-gorm-starter/internal/middleware"
 	"github.com/kyungseok-lee/fiber-gorm-starter/internal/metrics"
+	"github.com/kyungseok-lee/fiber-gorm-starter/pkg/resp"
 	"gorm.io/gorm"
 )
 
@@ -51,27 +50,25 @@ func NewRouter(cfg *config.Config, db *gorm.DB) *Router {
 
 // Setup 라우터 설정 / Setup router
 func (r *Router) Setup() {
-	// 보안 헤더 미들웨어 / Security headers middleware
-	r.app.Use(helmet.New(helmet.Config{
-		XSSProtection:         "1; mode=block",
-		ContentTypeNosniff:    "nosniff",
-		XFrameOptions:         "DENY",
-		HSTSMaxAge:            31536000,
-		HSTSExcludeSubdomains: false,
-		HSTSPreloadEnabled:    true,
-	}))
-
 	// 패닉 복구 미들웨어 / Panic recovery middleware
-	r.app.Use(recover.New())
+	r.app.Use(middleware.Recover())
+
+	// 보안 헤더 미들웨어 / Security headers middleware
+	r.app.Use(middleware.SecureHeaders())
 
 	// 요청 ID 미들웨어 / Request ID middleware
 	r.app.Use(middleware.RequestID())
 
 	// 로깅 미들웨어 / Logging middleware
-	r.app.Use(middleware.Logger())
+	r.app.Use(middleware.RequestLogger())
 
 	// CORS 미들웨어 / CORS middleware
 	r.app.Use(middleware.CORS(r.cfg))
+
+	// API 키 미들웨어 (설정된 경우) / API key middleware (if configured)
+	if r.cfg.APIKey != "" {
+		r.app.Use(middleware.APIKey(r.cfg))
+	}
 
 	// 메트릭 미들웨어 (활성화된 경우) / Metrics middleware (if enabled)
 	if r.cfg.MetricsEnabled {
@@ -85,7 +82,7 @@ func (r *Router) Setup() {
 
 	// Swagger 문서 (개발환경에서만) / Swagger documentation (development only)
 	if r.cfg.IsDev() {
-		r.app.Get("/docs/*", swagger.HandlerDefault)
+		r.app.Get("/docs/*", middleware.Swagger())
 	}
 
 	// API v1 라우트 / API v1 routes
@@ -95,12 +92,16 @@ func (r *Router) Setup() {
 	if r.cfg.PProfEnabled {
 		r.setupPProfRoutes()
 	}
+
+	// 404 핸들러 / 404 handler
+	r.setup404Handler()
 }
 
 // setupHealthRoutes 헬스 체크 라우트 설정 / Setup health check routes
 func (r *Router) setupHealthRoutes() {
-	r.app.Get("/health", NewHealthHandler(r.db).Health)
-	r.app.Get("/ready", NewHealthHandler(r.db).Ready)
+	healthHandler := health.New(r.db)
+	r.app.Get("/health", healthHandler.Health)
+	r.app.Get("/ready", healthHandler.Ready)
 }
 
 // setupV1Routes API v1 라우트 설정 / Setup API v1 routes
@@ -133,6 +134,13 @@ func (r *Router) setupPProfRoutes() {
 		// TODO: net/http/pprof 패키지 통합 / Integrate net/http/pprof package
 		// r.app.Get("/debug/pprof/*", adaptor.HTTPHandler(http.DefaultServeMux))
 	}
+}
+
+// setup404Handler 404 에러 핸들러 설정 / Setup 404 error handler
+func (r *Router) setup404Handler() {
+	r.app.Use(func(c *fiber.Ctx) error {
+		return resp.NotFound(c, "route not found")
+	})
 }
 
 // GetApp Fiber 앱 반환 / Return Fiber app
