@@ -4,12 +4,12 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/kyungseok-lee/fiber-gorm-starter/internal/config"
-	"github.com/kyungseok-lee/fiber-gorm-starter/internal/domain/user"
-	"github.com/kyungseok-lee/fiber-gorm-starter/internal/http/health"
-	"github.com/kyungseok-lee/fiber-gorm-starter/internal/middleware"
-	"github.com/kyungseok-lee/fiber-gorm-starter/internal/metrics"
-	"github.com/kyungseok-lee/fiber-gorm-starter/pkg/resp"
+	"github.com/kyungseok-lee/go-fiber-gorm-starter/internal/config"
+	"github.com/kyungseok-lee/go-fiber-gorm-starter/internal/domain/user"
+	"github.com/kyungseok-lee/go-fiber-gorm-starter/internal/http/health"
+	"github.com/kyungseok-lee/go-fiber-gorm-starter/internal/middleware"
+	"github.com/kyungseok-lee/go-fiber-gorm-starter/internal/metrics"
+	"github.com/kyungseok-lee/go-fiber-gorm-starter/pkg/resp"
 	"gorm.io/gorm"
 )
 

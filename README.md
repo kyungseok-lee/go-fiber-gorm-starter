@@ -27,7 +27,7 @@ A production-ready REST API skeleton built with Go Fiber v2 and GORM, supporting
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/kyungseok-lee/fiber-gorm-starter.git
+   git clone https://github.com/kyungseok-lee/go-fiber-gorm-starter.git
    cd fiber-gorm-starter
    ```
 

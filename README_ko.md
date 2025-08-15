@@ -27,7 +27,7 @@ Go Fiber v2와 GORM으로 구축된 프로덕션 준비 완료 REST API 스켈�
 
 1. **저장소 클론**
    ```bash
-   git clone https://github.com/kyungseok-lee/fiber-gorm-starter.git
+   git clone https://github.com/kyungseok-lee/go-fiber-gorm-starter.git
    cd fiber-gorm-starter
    ```
 

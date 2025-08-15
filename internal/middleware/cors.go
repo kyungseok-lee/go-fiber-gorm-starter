@@ -3,7 +3,7 @@ package middleware
 import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
-	"github.com/kyungseok-lee/fiber-gorm-starter/internal/config"
+	"github.com/kyungseok-lee/go-fiber-gorm-starter/internal/config"
 )
 
 // CORS CORS 미들웨어 설정 / CORS middleware configuration

@@ -5,7 +5,7 @@ import (
 	"strconv"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/kyungseok-lee/fiber-gorm-starter/pkg/resp"
+	"github.com/kyungseok-lee/go-fiber-gorm-starter/pkg/resp"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 )

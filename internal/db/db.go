@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/kyungseok-lee/fiber-gorm-starter/internal/config"
+	"github.com/kyungseok-lee/go-fiber-gorm-starter/internal/config"
 	"go.uber.org/zap"
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"

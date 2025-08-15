@@ -4,8 +4,8 @@ import (
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/kyungseok-lee/fiber-gorm-starter/internal/config"
-	"github.com/kyungseok-lee/fiber-gorm-starter/pkg/resp"
+	"github.com/kyungseok-lee/go-fiber-gorm-starter/internal/config"
+	"github.com/kyungseok-lee/go-fiber-gorm-starter/pkg/resp"
 )
 
 // APIKey API 키 인증 미들웨어 / API key authentication middleware

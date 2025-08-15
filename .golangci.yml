@@ -14,13 +14,13 @@ linters-settings:
     sections:
       - standard
       - default
-      - prefix(github.com/kyungseok-lee/fiber-gorm-starter)
+      - prefix(github.com/kyungseok-lee/go-fiber-gorm-starter)
   
   gofmt:
     simplify: true
   
   goimports:
-    local-prefixes: github.com/kyungseok-lee/fiber-gorm-starter
+    local-prefixes: github.com/kyungseok-lee/go-fiber-gorm-starter
   
   golint:
     min-confidence: 0.8

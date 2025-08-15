@@ -1,4 +1,4 @@
-module github.com/kyungseok-lee/fiber-gorm-starter
+module github.com/kyungseok-lee/go-fiber-gorm-starter
 
 go 1.22
 

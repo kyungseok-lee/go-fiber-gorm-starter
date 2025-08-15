@@ -16,7 +16,7 @@ NC='\033[0m' # No Color
 # 기본값
 MAIN_FILE="cmd/server/main.go"
 OUTPUT_DIR="./docs"
-PACKAGE_NAME="github.com/kyungseok-lee/fiber-gorm-starter"
+PACKAGE_NAME="github.com/kyungseok-lee/go-fiber-gorm-starter"
 
 # Function to print colored output
 # 색상 출력 함수

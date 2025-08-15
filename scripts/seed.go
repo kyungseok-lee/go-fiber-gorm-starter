@@ -6,9 +6,9 @@ import (
 	"os"
 
 	"github.com/joho/godotenv"
-	"github.com/kyungseok-lee/fiber-gorm-starter/internal/config"
-	"github.com/kyungseok-lee/fiber-gorm-starter/internal/db"
-	"github.com/kyungseok-lee/fiber-gorm-starter/internal/domain/user"
+	"github.com/kyungseok-lee/go-fiber-gorm-starter/internal/config"
+	"github.com/kyungseok-lee/go-fiber-gorm-starter/internal/db"
+	"github.com/kyungseok-lee/go-fiber-gorm-starter/internal/domain/user"
 )
 
 func main() {
