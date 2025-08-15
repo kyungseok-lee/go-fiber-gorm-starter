@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/joho/godotenv"
+
 	"github.com/kyungseok-lee/go-fiber-gorm-starter/internal/config"
 	"github.com/kyungseok-lee/go-fiber-gorm-starter/internal/db"
 	"github.com/kyungseok-lee/go-fiber-gorm-starter/internal/domain/user"
@@ -42,22 +43,30 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to get underlying sql.DB: %v", err)
 	}
-	defer sqlDB.Close()
+	defer func() {
+		if err := sqlDB.Close(); err != nil {
+			log.Printf("Failed to close database connection: %v", err)
+		}
+	}()
 
 	// 기존 데이터 확인 / Check existing data
 	var userCount int64
 	if err := database.Model(&user.User{}).Count(&userCount).Error; err != nil {
-		log.Fatalf("Failed to count existing users: %v", err)
+		log.Printf("Failed to count existing users: %v", err)
+		return
 	}
 
 	if userCount > 0 {
 		fmt.Printf("Users table already has %d records.\n", userCount)
 		fmt.Print("Do you want to continue and add seed data? (y/N): ")
-		
+
 		var response string
-		fmt.Scanln(&response)
+		if _, err := fmt.Scanln(&response); err != nil {
+			log.Printf("Failed to read input: %v", err)
+			return
+		}
 		if response != "y" && response != "Y" {
-			fmt.Println("Seed operation cancelled.")
+			fmt.Println("Seed operation canceled.")
 			os.Exit(0)
 		}
 	}
@@ -152,7 +161,7 @@ func main() {
 
 	fmt.Printf("\n🎉 Seed operation completed!\n")
 	fmt.Printf("Inserted %d new users out of %d total seed users.\n", insertedCount, len(seedUsers))
-	
+
 	// 최종 사용자 수 출력 / Print final user count
 	var finalCount int64
 	if err := database.Model(&user.User{}).Count(&finalCount).Error; err != nil {

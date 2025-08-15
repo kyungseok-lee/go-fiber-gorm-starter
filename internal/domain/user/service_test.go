@@ -517,18 +517,6 @@ func createTestCreateRequest() *CreateUserRequest {
 	}
 }
 
-func createTestUpdateRequest() *UpdateUserRequest {
-	name := "Updated Name"
-	email := "updated@example.com"
-	status := StatusInactive
-
-	return &UpdateUserRequest{
-		Name:   &name,
-		Email:  &email,
-		Status: &status,
-	}
-}
-
 // 벤치마크 테스트 / Benchmark tests
 func BenchmarkService_Create(b *testing.B) {
 	mockRepo := new(MockRepository)

@@ -1,9 +1,11 @@
+// Package middleware provides HTTP middleware functions for the Fiber application
 package middleware
 
 import (
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
+
 	"github.com/kyungseok-lee/go-fiber-gorm-starter/internal/config"
 	"github.com/kyungseok-lee/go-fiber-gorm-starter/pkg/resp"
 )

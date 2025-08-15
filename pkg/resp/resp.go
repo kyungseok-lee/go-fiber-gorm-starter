@@ -1,3 +1,4 @@
+// Package resp provides standardized HTTP response utilities
 package resp
 
 import (

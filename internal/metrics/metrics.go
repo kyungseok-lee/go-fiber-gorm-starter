@@ -1,3 +1,4 @@
+// Package metrics provides Prometheus metrics integration for the application
 package metrics
 
 import (
@@ -14,7 +15,7 @@ type Prometheus struct {
 func NewPrometheus() *Prometheus {
 	// Prometheus 설정 / Prometheus configuration
 	prometheus := fiberprometheus.New("spindle")
-	
+
 	return &Prometheus{
 		fiberPrometheus: prometheus,
 	}
@@ -39,7 +40,7 @@ func (p *Prometheus) RegisterCustomMetrics() {
 	// - 데이터베이스 연결 풀 메트릭 / Database connection pool metrics
 	// - 캐시 히트/미스 비율 / Cache hit/miss ratio
 	// - 비즈니스 이벤트 메트릭 / Business event metrics
-	
+
 	// userCreationCounter := prometheus.NewCounterVec(
 	//     prometheus.CounterOpts{
 	//         Name: "users_created_total",

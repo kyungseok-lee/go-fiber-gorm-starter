@@ -127,7 +127,7 @@ func (r *repository) WithTx(tx *gorm.DB) Repository {
 
 // 향후 확장 가능한 메서드들 / Future extensible methods
 // - BulkCreate: 대량 사용자 생성
-// - BulkUpdate: 대량 사용자 업데이트  
+// - BulkUpdate: 대량 사용자 업데이트
 // - GetActiveUsers: 활성 사용자만 조회
 // - SearchByTags: 태그 기반 검색
 // - GetUserStats: 사용자 통계 정보

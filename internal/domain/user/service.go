@@ -37,7 +37,7 @@ func (s *service) Create(req *CreateUserRequest) (*User, error) {
 		logger.Error("Failed to check email duplication", zap.Error(err), zap.String("email", req.Email))
 		return nil, fmt.Errorf("failed to check email duplication: %w", err)
 	}
-	
+
 	if existingUser != nil {
 		logger.Warn("Email already exists", zap.String("email", req.Email))
 		return nil, fmt.Errorf("email already exists: %s", req.Email)
@@ -52,8 +52,8 @@ func (s *service) Create(req *CreateUserRequest) (*User, error) {
 		return nil, fmt.Errorf("failed to create user: %w", err)
 	}
 
-	logger.Info("User created successfully", 
-		zap.Uint("user_id", user.ID), 
+	logger.Info("User created successfully",
+		zap.Uint("user_id", user.ID),
 		zap.String("email", user.Email))
 
 	return user, nil
@@ -79,7 +79,7 @@ func (s *service) GetByID(id uint) (*User, error) {
 // Update 사용자 업데이트 / Update user
 func (s *service) Update(id uint, req *UpdateUserRequest) (*User, error) {
 	logger := zap.L().With(
-		zap.String("method", "user.service.Update"), 
+		zap.String("method", "user.service.Update"),
 		zap.Uint("user_id", id))
 
 	// 기존 사용자 조회 / Get existing user
@@ -100,7 +100,7 @@ func (s *service) Update(id uint, req *UpdateUserRequest) (*User, error) {
 			logger.Error("Failed to check email duplication for update", zap.Error(err))
 			return nil, fmt.Errorf("failed to check email duplication: %w", err)
 		}
-		
+
 		if existingUser != nil {
 			logger.Warn("Email already exists for update", zap.String("email", *req.Email))
 			return nil, fmt.Errorf("email already exists: %s", *req.Email)
@@ -124,7 +124,7 @@ func (s *service) Update(id uint, req *UpdateUserRequest) (*User, error) {
 // Delete 사용자 삭제 / Delete user
 func (s *service) Delete(id uint) error {
 	logger := zap.L().With(
-		zap.String("method", "user.service.Delete"), 
+		zap.String("method", "user.service.Delete"),
 		zap.Uint("user_id", id))
 
 	// 사용자 존재 확인 / Check user existence
@@ -133,7 +133,7 @@ func (s *service) Delete(id uint) error {
 		logger.Error("Failed to check user existence for delete", zap.Error(err))
 		return fmt.Errorf("failed to check user existence: %w", err)
 	}
-	
+
 	if !exists {
 		logger.Warn("User not found for delete", zap.Uint("user_id", id))
 		return fmt.Errorf("user not found with id %d", id)
@@ -163,8 +163,8 @@ func (s *service) List(query *ListUsersQuery) ([]*User, int64, error) {
 		return nil, 0, fmt.Errorf("failed to list users: %w", err)
 	}
 
-	logger.Info("Users listed successfully", 
-		zap.Int("count", len(users)), 
+	logger.Info("Users listed successfully",
+		zap.Int("count", len(users)),
 		zap.Int64("total", total),
 		zap.Int("offset", query.Offset),
 		zap.Int("limit", query.Limit))

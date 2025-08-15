@@ -10,8 +10,8 @@ import (
 type Status string
 
 const (
-	StatusActive   Status = "active"
-	StatusInactive Status = "inactive"
+	StatusActive    Status = "active"
+	StatusInactive  Status = "inactive"
 	StatusSuspended Status = "suspended"
 )
 
@@ -78,13 +78,13 @@ func (r *CreateUserRequest) ToUser() *User {
 		Name:  r.Name,
 		Email: r.Email,
 	}
-	
+
 	if r.Status != "" {
 		user.Status = r.Status
 	} else {
 		user.Status = StatusActive
 	}
-	
+
 	return user
 }
 

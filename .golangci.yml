@@ -10,6 +10,19 @@ output:
   print-linter-name: true
 
 linters-settings:
+  depguard:
+    rules:
+      main:
+        allow:
+          - $gostd
+          - github.com/caarlos0/env/v11
+          - github.com/gofiber/fiber/v2
+          - github.com/ansrivas/fiberprometheus/v2
+          - github.com/google/uuid
+          - github.com/swaggo/fiber-swagger
+          - github.com/stretchr/testify
+          - github.com/kyungseok-lee/go-fiber-gorm-starter
+
   gci:
     sections:
       - standard

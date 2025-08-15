@@ -7,6 +7,7 @@ import (
 	recovermw "github.com/gofiber/fiber/v2/middleware/recover"
 )
 
+// Recover 패닉 복구 미들웨어 / Panic recovery middleware
 func Recover() fiber.Handler {
 	return recovermw.New()
 }

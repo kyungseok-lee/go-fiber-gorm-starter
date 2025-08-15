@@ -1,20 +1,24 @@
+// Package health provides health check handlers for the HTTP server
 package health
 
 // Health and readiness handlers
 
 import (
 	fiber "github.com/gofiber/fiber/v2"
+	"gorm.io/gorm"
+
 	"github.com/kyungseok-lee/go-fiber-gorm-starter/internal/db"
 	"github.com/kyungseok-lee/go-fiber-gorm-starter/pkg/resp"
-	"gorm.io/gorm"
 )
 
+// Handler 헬스 체크 핸들러 / Health check handler
 type Handler struct{ db *gorm.DB }
 
+// New 새로운 헬스 체크 핸들러 생성 / Create new health check handler
 func New(db *gorm.DB) *Handler { return &Handler{db: db} }
 
-// HealthResponse 헬스 체크 응답 구조체 / Health check response structure
-type HealthResponse struct {
+// Response 헬스 체크 응답 구조체 / Health check response structure
+type Response struct {
 	Status  string            `json:"status"`
 	Service string            `json:"service"`
 	Version string            `json:"version"`
@@ -27,10 +31,10 @@ type HealthResponse struct {
 // @Tags health
 // @Accept json
 // @Produce json
-// @Success 200 {object} HealthResponse
+// @Success 200 {object} Response
 // @Router /health [get]
 func (h *Handler) Health(c *fiber.Ctx) error {
-	return resp.Success(c, HealthResponse{
+	return resp.Success(c, Response{
 		Status:  "ok",
 		Service: "fiber-gorm-starter",
 		Version: "1.0.0",
@@ -43,7 +47,7 @@ func (h *Handler) Health(c *fiber.Ctx) error {
 // @Tags health
 // @Accept json
 // @Produce json
-// @Success 200 {object} HealthResponse
+// @Success 200 {object} Response
 // @Failure 503 {object} resp.ErrorResponse
 // @Router /ready [get]
 func (h *Handler) Ready(c *fiber.Ctx) error {
@@ -56,7 +60,7 @@ func (h *Handler) Ready(c *fiber.Ctx) error {
 	}
 	checks["database"] = "ok"
 
-	return resp.Success(c, HealthResponse{
+	return resp.Success(c, Response{
 		Status:  "ready",
 		Service: "fiber-gorm-starter",
 		Version: "1.0.0",

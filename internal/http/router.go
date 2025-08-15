@@ -1,24 +1,32 @@
+// Package http provides HTTP router configuration and setup for the application
 package http
 
 import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"gorm.io/gorm"
+
 	"github.com/kyungseok-lee/go-fiber-gorm-starter/internal/config"
 	"github.com/kyungseok-lee/go-fiber-gorm-starter/internal/domain/user"
 	"github.com/kyungseok-lee/go-fiber-gorm-starter/internal/http/health"
-	"github.com/kyungseok-lee/go-fiber-gorm-starter/internal/middleware"
 	"github.com/kyungseok-lee/go-fiber-gorm-starter/internal/metrics"
+	"github.com/kyungseok-lee/go-fiber-gorm-starter/internal/middleware"
 	"github.com/kyungseok-lee/go-fiber-gorm-starter/pkg/resp"
-	"gorm.io/gorm"
+)
+
+const (
+	readTimeoutSeconds  = 10
+	writeTimeoutSeconds = 10
+	idleTimeoutSeconds  = 120
 )
 
 // Router HTTP 라우터 설정 / HTTP router configuration
 type Router struct {
-	app    *fiber.App
-	cfg    *config.Config
-	db     *gorm.DB
-	userH  *user.Handler
+	app   *fiber.App
+	cfg   *config.Config
+	db    *gorm.DB
+	userH *user.Handler
 }
 
 // NewRouter 새 라우터 생성 / Create new router
@@ -26,9 +34,9 @@ func NewRouter(cfg *config.Config, db *gorm.DB) *Router {
 	// Fiber 앱 설정 / Fiber app configuration
 	app := fiber.New(fiber.Config{
 		AppName:      "spindle API", // 브랜딩 이름 사용 / Use branding name
-		ReadTimeout:  10 * time.Second,
-		WriteTimeout: 10 * time.Second,
-		IdleTimeout:  120 * time.Second,
+		ReadTimeout:  readTimeoutSeconds * time.Second,
+		WriteTimeout: writeTimeoutSeconds * time.Second,
+		IdleTimeout:  idleTimeoutSeconds * time.Second,
 		ServerHeader: "spindle",
 		// JSON 엔코더 최적화 옵션 (필요시 주석 해제) / JSON encoder optimization option (uncomment if needed)
 		// JSONEncoder: json.Marshal,   // 기본 encoding/json 사용 / Use default encoding/json
@@ -110,11 +118,11 @@ func (r *Router) setupV1Routes() {
 
 	// User 라우트 / User routes
 	users := v1.Group("/users")
-	users.Get("/", r.userH.List)                    // GET /v1/users
-	users.Get("/:id", r.userH.GetByID)              // GET /v1/users/:id
-	users.Post("/", r.userH.Create)                 // POST /v1/users
-	users.Put("/:id", r.userH.Update)               // PUT /v1/users/:id
-	users.Delete("/:id", r.userH.Delete)            // DELETE /v1/users/:id
+	users.Get("/", r.userH.List)         // GET /v1/users
+	users.Get("/:id", r.userH.GetByID)   // GET /v1/users/:id
+	users.Post("/", r.userH.Create)      // POST /v1/users
+	users.Put("/:id", r.userH.Update)    // PUT /v1/users/:id
+	users.Delete("/:id", r.userH.Delete) // DELETE /v1/users/:id
 
 	// 향후 확장 가능한 라우트들 / Future extensible routes
 	// auth := v1.Group("/auth")

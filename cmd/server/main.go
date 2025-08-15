@@ -9,13 +9,20 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/gofiber/fiber/v2"
 	"github.com/joho/godotenv"
+	"go.uber.org/zap"
+	"gorm.io/gorm"
+
 	"github.com/kyungseok-lee/go-fiber-gorm-starter/internal/config"
 	"github.com/kyungseok-lee/go-fiber-gorm-starter/internal/db"
 	"github.com/kyungseok-lee/go-fiber-gorm-starter/internal/domain/user"
 	"github.com/kyungseok-lee/go-fiber-gorm-starter/internal/http"
 	"github.com/kyungseok-lee/go-fiber-gorm-starter/internal/logger"
-	"go.uber.org/zap"
+)
+
+const (
+	shutdownTimeoutSeconds = 30
 )
 
 // @title           Spindle API
@@ -45,6 +52,15 @@ func main() {
 		return
 	}
 
+	cfg := initializeApp()
+	database := setupDatabase(cfg)
+	app := setupServer(cfg, database)
+
+	runServerWithGracefulShutdown(app, cfg)
+}
+
+// initializeApp 앱 초기화 / Initialize application
+func initializeApp() *config.Config {
 	// .env 파일 로드 / Load .env file
 	if err := godotenv.Load(); err != nil {
 		log.Println("No .env file found, using environment variables")
@@ -61,7 +77,11 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to initialize logger: %v", err)
 	}
-	defer logger.Sync()
+	defer func() {
+		if err := logger.Sync(); err != nil {
+			log.Printf("Failed to sync logger: %v", err)
+		}
+	}()
 
 	zap.L().Info("Starting Spindle API Server",
 		zap.String("env", cfg.Env),
@@ -69,6 +89,11 @@ func main() {
 		zap.String("db_driver", cfg.DBDriver),
 	)
 
+	return cfg
+}
+
+// setupDatabase 데이터베이스 설정 / Setup database
+func setupDatabase(cfg *config.Config) *gorm.DB {
 	// 데이터베이스 연결 / Connect to database
 	database, err := db.Connect(cfg)
 	if err != nil {
@@ -79,19 +104,31 @@ func main() {
 	if err != nil {
 		zap.L().Fatal("Failed to get underlying sql.DB", zap.Error(err))
 	}
-	defer sqlDB.Close()
+	defer func() {
+		if err := sqlDB.Close(); err != nil {
+			zap.L().Error("Failed to close database connection", zap.Error(err))
+		}
+	}()
 
 	// Auto-migrate 테이블 / Auto-migrate tables
 	if err := database.AutoMigrate(&user.User{}); err != nil {
 		zap.L().Fatal("Failed to auto-migrate database", zap.Error(err))
 	}
 
+	return database
+}
+
+// setupServer 서버 설정 / Setup server
+func setupServer(cfg *config.Config, database *gorm.DB) *fiber.App {
 	// HTTP 라우터 설정 / Setup HTTP router
 	router := http.NewRouter(cfg, database)
 	router.Setup()
 
-	app := router.GetApp()
+	return router.GetApp()
+}
 
+// runServerWithGracefulShutdown 서버 실행 및 graceful shutdown / Run server with graceful shutdown
+func runServerWithGracefulShutdown(app *fiber.App, cfg *config.Config) {
 	// Graceful shutdown 설정 / Setup graceful shutdown
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
@@ -115,7 +152,7 @@ func main() {
 	zap.L().Info("Shutting down server...")
 
 	// 30초 타임아웃으로 graceful shutdown / Graceful shutdown with 30 second timeout
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), shutdownTimeoutSeconds*time.Second)
 	defer cancel()
 
 	if err := app.ShutdownWithContext(ctx); err != nil {

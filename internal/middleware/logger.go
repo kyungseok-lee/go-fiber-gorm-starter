@@ -7,6 +7,11 @@ import (
 	"go.uber.org/zap"
 )
 
+const (
+	httpStatusInternalServerError = 500
+	httpStatusBadRequest          = 400
+)
+
 // Logger 요청 로깅 미들웨어 / Request logging middleware
 func Logger() fiber.Handler {
 	return func(c *fiber.Ctx) error {
@@ -43,11 +48,12 @@ func Logger() fiber.Handler {
 		} else {
 			// HTTP 상태 코드에 따른 로그 레벨 조정 / Adjust log level based on HTTP status code
 			status := c.Response().StatusCode()
-			if status >= 500 {
+			switch {
+			case status >= httpStatusInternalServerError:
 				zap.L().Error("Request completed", fields...)
-			} else if status >= 400 {
+			case status >= httpStatusBadRequest:
 				zap.L().Warn("Request completed", fields...)
-			} else {
+			default:
 				zap.L().Info("Request completed", fields...)
 			}
 		}

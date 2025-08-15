@@ -6,6 +6,7 @@ import (
 	fiber "github.com/gofiber/fiber/v2"
 )
 
+// SecureHeaders 보안 헤더 미들웨어 / Security headers middleware
 func SecureHeaders() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		c.Set("X-Content-Type-Options", "nosniff")

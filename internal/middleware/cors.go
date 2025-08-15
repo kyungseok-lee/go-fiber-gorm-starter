@@ -3,6 +3,7 @@ package middleware
 import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
+
 	"github.com/kyungseok-lee/go-fiber-gorm-starter/internal/config"
 )
 

@@ -7,6 +7,7 @@ import (
 	fiberswagger "github.com/swaggo/fiber-swagger"
 )
 
+// Swagger API 문서 미들웨어 / Swagger API documentation middleware
 func Swagger() fiber.Handler {
 	return fiberswagger.WrapHandler
 }
