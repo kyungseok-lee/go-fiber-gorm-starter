@@ -1,0 +1,77 @@
+# Git
+.git
+.gitignore
+.github
+
+# Documentation
+README.md
+README_ko.md
+*.md
+docs/
+
+# Development files
+.env
+.env.local
+.env.example
+.vscode/
+.idea/
+
+# Test files
+*_test.go
+coverage.out
+testdata/
+
+# Build artifacts
+main
+*.exe
+*.dll
+*.so
+*.dylib
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+tmp/
+temp/
+.tmp
+
+# Docker
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# CI/CD
+.github/
+
+# Scripts (build context doesn't need them)
+scripts/
+
+# K8s manifests
+k8s/
+*.yaml
+*.yml
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Go specific
+vendor/
+bin/
+
+# Migration files (include only if needed at runtime)
+# migrations/

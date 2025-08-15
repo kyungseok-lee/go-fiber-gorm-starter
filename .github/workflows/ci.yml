@@ -1,0 +1,243 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+env:
+  GO_VERSION: 1.22
+
+jobs:
+  # Lint and format check
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: ${{ env.GO_VERSION }}
+    
+    - name: Cache Go modules
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cache/go-build
+          ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+    
+    - name: Install golangci-lint
+      run: |
+        curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.55.2
+    
+    - name: Run golangci-lint
+      run: golangci-lint run --timeout=5m
+
+  # Test with multiple databases
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        db: [mysql, postgres]
+    
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: rootpassword
+          MYSQL_DATABASE: fiber_gorm_starter_test
+          MYSQL_USER: user
+          MYSQL_PASSWORD: password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -u user -ppassword"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+      
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_DB: fiber_gorm_starter_test
+          POSTGRES_USER: user
+          POSTGRES_PASSWORD: password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U user -d fiber_gorm_starter_test"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: ${{ env.GO_VERSION }}
+    
+    - name: Cache Go modules
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cache/go-build
+          ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+    
+    - name: Install dependencies
+      run: go mod download
+    
+    - name: Set test environment variables
+      run: |
+        if [ "${{ matrix.db }}" = "mysql" ]; then
+          echo "DB_DRIVER=mysql" >> $GITHUB_ENV
+          echo "DB_HOST=localhost" >> $GITHUB_ENV
+          echo "DB_PORT=3306" >> $GITHUB_ENV
+          echo "DB_NAME=fiber_gorm_starter_test" >> $GITHUB_ENV
+        else
+          echo "DB_DRIVER=postgres" >> $GITHUB_ENV
+          echo "DB_HOST=localhost" >> $GITHUB_ENV
+          echo "DB_PORT=5432" >> $GITHUB_ENV
+          echo "DB_NAME=fiber_gorm_starter_test" >> $GITHUB_ENV
+          echo "DB_SSL_MODE=disable" >> $GITHUB_ENV
+        fi
+        echo "DB_USER=user" >> $GITHUB_ENV
+        echo "DB_PASS=password" >> $GITHUB_ENV
+        echo "ENV=test" >> $GITHUB_ENV
+    
+    - name: Wait for database
+      run: |
+        if [ "${{ matrix.db }}" = "mysql" ]; then
+          timeout 60 bash -c 'until mysqladmin ping -h localhost -u user -ppassword; do sleep 2; done'
+        else
+          timeout 60 bash -c 'until pg_isready -h localhost -U user -d fiber_gorm_starter_test; do sleep 2; done'
+        fi
+    
+    - name: Run tests
+      run: go test -v -race -coverprofile=coverage.out ./...
+    
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      if: matrix.db == 'mysql'  # Only upload once
+      with:
+        file: ./coverage.out
+        flags: unittests
+        name: codecov-umbrella
+
+  # Build and security scan
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: [lint, test]
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: ${{ env.GO_VERSION }}
+    
+    - name: Cache Go modules
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cache/go-build
+          ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+    
+    - name: Install dependencies
+      run: go mod download
+    
+    - name: Build application
+      run: |
+        CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
+          -ldflags='-w -s -extldflags "-static"' \
+          -a -installsuffix cgo \
+          -o main cmd/server/main.go
+    
+    - name: Run GoSec Security Scanner
+      uses: securecodewarrior/github-action-gosec@master
+      with:
+        args: '-no-fail -fmt sarif -out gosec.sarif ./...'
+    
+    - name: Upload SARIF file
+      uses: github/codeql-action/upload-sarif@v2
+      with:
+        sarif_file: gosec.sarif
+
+  # Swagger documentation generation check
+  swagger:
+    name: Swagger Documentation
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: ${{ env.GO_VERSION }}
+    
+    - name: Install swag
+      run: go install github.com/swaggo/swag/cmd/swag@latest
+    
+    - name: Generate swagger docs
+      run: swag init -g cmd/server/main.go -o ./docs
+    
+    - name: Check for changes
+      run: |
+        git diff --exit-code docs/ || (echo "Swagger docs are not up to date. Please run 'make swag' and commit the changes." && exit 1)
+
+  # Docker build test
+  docker:
+    name: Docker Build
+    runs-on: ubuntu-latest
+    needs: [build]
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+    
+    - name: Build Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./Dockerfile
+        push: false
+        tags: fiber-gorm-starter:latest
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+    
+    # Future: Add image security scanning
+    # - name: Run Trivy vulnerability scanner
+    #   uses: aquasecurity/trivy-action@master
+    #   with:
+    #     image-ref: 'fiber-gorm-starter:latest'
+    #     format: 'sarif'
+    #     output: 'trivy-results.sarif'
+    # 
+    # - name: Upload Trivy scan results to GitHub Security tab
+    #   uses: github/codeql-action/upload-sarif@v2
+    #   with:
+    #     sarif_file: 'trivy-results.sarif'
+
+# Future CI/CD enhancements:
+# 1. Add performance testing with k6
+# 2. Add dependency vulnerability scanning
+# 3. Add container image signing
+# 4. Add deployment to staging environment
+# 5. Add integration tests with real databases
+# 6. Add release automation with semantic versioning

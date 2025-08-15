@@ -1,0 +1,146 @@
+version: '3.8'
+
+services:
+  # Application service
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - ENV=local
+      - DB_HOST=${DB_HOST:-mysql}  # Use mysql or postgres based on profile
+      - DB_PORT=${DB_PORT:-3306}
+      - DB_USER=${DB_USER:-user}
+      - DB_PASS=${DB_PASS:-password}
+      - DB_NAME=${DB_NAME:-fiber_gorm_starter}
+      - DB_DRIVER=${DB_DRIVER:-mysql}
+      - LOG_LEVEL=debug
+      - METRICS_ENABLED=true
+    depends_on:
+      mysql:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    profiles:
+      - app
+    networks:
+      - fiber-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+
+  # MySQL database service
+  mysql:
+    image: mysql:8.0
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: fiber_gorm_starter
+      MYSQL_USER: user
+      MYSQL_PASSWORD: password
+      TZ: Asia/Seoul
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./scripts/mysql-init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    profiles:
+      - mysql
+    networks:
+      - fiber-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "user", "-ppassword"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+
+  # PostgreSQL database service
+  postgres:
+    image: postgres:15-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: fiber_gorm_starter
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      TZ: Asia/Seoul
+      PGTZ: Asia/Seoul
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/postgres-init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    profiles:
+      - postgres
+    networks:
+      - fiber-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d fiber_gorm_starter"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # Redis (optional for future caching)
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    profiles:
+      - redis
+    networks:
+      - fiber-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    command: redis-server --appendonly yes
+
+volumes:
+  mysql_data:
+    driver: local
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  fiber-network:
+    driver: bridge
+
+# Usage examples:
+# 
+# Start with MySQL:
+# docker-compose --profile mysql --profile app up -d
+# 
+# Start with PostgreSQL:
+# docker-compose --profile postgres --profile app up -d
+# 
+# Start only database (for development):
+# docker-compose --profile mysql up -d
+# 
+# Start with Redis cache:
+# docker-compose --profile mysql --profile app --profile redis up -d
+# 
+# Stop services:
+# docker-compose down
+# 
+# Stop and remove volumes:
+# docker-compose down -v
+# 
+# View logs:
+# docker-compose logs -f app
+# 
+# Environment variables can be overridden:
+# DB_DRIVER=postgres docker-compose --profile postgres --profile app up -d
