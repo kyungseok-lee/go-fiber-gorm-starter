@@ -1,53 +1,68 @@
+# CI workflow for Go Fiber + GORM project
+# This workflow runs on every push and pull request to main/develop branches
+# It includes linting, testing with multiple databases, building, security scanning, and documentation checks
+
 name: CI
 
+# Workflow triggers - when this CI pipeline will run
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main, develop ]  # Run on pushes to main or develop branch
   pull_request:
-    branches: [ main, develop ]
+    branches: [ main, develop ]  # Run on pull requests targeting main or develop
 
+# Global environment variables available to all jobs
 env:
-  GO_VERSION: 1.22
+  GO_VERSION: 1.22  # Go version to use across all jobs
 
 jobs:
-  # Lint and format check
+  # Job 1: Code linting and formatting check
   lint:
     name: Lint
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest  # Use Ubuntu runner
     steps:
+    # Step 1: Download source code from repository
     - uses: actions/checkout@v4
     
+    # Step 2: Set up Go environment
     - name: Set up Go
       uses: actions/setup-go@v4
       with:
-        go-version: ${{ env.GO_VERSION }}
+        go-version: ${{ env.GO_VERSION }}  # Use global GO_VERSION variable
     
+    # Step 3: Cache Go modules to speed up subsequent runs
     - name: Cache Go modules
       uses: actions/cache@v3
       with:
         path: |
-          ~/.cache/go-build
-          ~/go/pkg/mod
+          ~/.cache/go-build    # Go build cache
+          ~/go/pkg/mod         # Go modules cache
+        # Cache key based on OS and go.sum file hash
         key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
         restore-keys: |
-          ${{ runner.os }}-go-
+          ${{ runner.os }}-go-  # Fallback cache key
     
+    # Step 4: Install golangci-lint (Go linting tool)
     - name: Install golangci-lint
       run: |
         curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.55.2
     
+    # Step 5: Run linting with 5 minute timeout
     - name: Run golangci-lint
       run: golangci-lint run --timeout=5m
 
-  # Test with multiple databases
+  # Job 2: Run tests with multiple database backends
   test:
     name: Test
     runs-on: ubuntu-latest
+    # Matrix strategy: run tests against both MySQL and PostgreSQL
     strategy:
       matrix:
-        db: [mysql, postgres]
+        db: [mysql, postgres]  # Test against both databases
     
+    # Database services for testing
     services:
+      # MySQL 8.0 service configuration
       mysql:
         image: mysql:8.0
         env:
@@ -56,13 +71,15 @@ jobs:
           MYSQL_USER: user
           MYSQL_PASSWORD: password
         ports:
-          - 3306:3306
+          - 3306:3306  # Expose MySQL port
+        # Health check to ensure MySQL is ready
         options: >-
           --health-cmd="mysqladmin ping -h localhost -u user -ppassword"
           --health-interval=10s
           --health-timeout=5s
           --health-retries=5
       
+      # PostgreSQL 15 service configuration
       postgres:
         image: postgres:15
         env:
@@ -70,7 +87,8 @@ jobs:
           POSTGRES_USER: user
           POSTGRES_PASSWORD: password
         ports:
-          - 5432:5432
+          - 5432:5432  # Expose PostgreSQL port
+        # Health check to ensure PostgreSQL is ready
         options: >-
           --health-cmd="pg_isready -U user -d fiber_gorm_starter_test"
           --health-interval=10s
@@ -78,13 +96,16 @@ jobs:
           --health-retries=5
 
     steps:
+    # Step 1: Checkout source code
     - uses: actions/checkout@v4
     
+    # Step 2: Set up Go environment (same as lint job)
     - name: Set up Go
       uses: actions/setup-go@v4
       with:
         go-version: ${{ env.GO_VERSION }}
     
+    # Step 3: Cache Go modules (same as lint job)
     - name: Cache Go modules
       uses: actions/cache@v3
       with:
@@ -95,11 +116,14 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-go-
     
+    # Step 4: Download Go dependencies
     - name: Install dependencies
       run: go mod download
     
+    # Step 5: Set database-specific environment variables
     - name: Set test environment variables
       run: |
+        # Configure environment based on matrix database selection
         if [ "${{ matrix.db }}" = "mysql" ]; then
           echo "DB_DRIVER=mysql" >> $GITHUB_ENV
           echo "DB_HOST=localhost" >> $GITHUB_ENV
@@ -116,31 +140,40 @@ jobs:
         echo "DB_PASS=password" >> $GITHUB_ENV
         echo "ENV=test" >> $GITHUB_ENV
     
+    # Step 6: Wait for database to be ready
     - name: Wait for database
       run: |
+        # Wait up to 60 seconds for database to be ready
         if [ "${{ matrix.db }}" = "mysql" ]; then
           timeout 60 bash -c 'until mysqladmin ping -h localhost -u user -ppassword; do sleep 2; done'
         else
           timeout 60 bash -c 'until pg_isready -h localhost -U user -d fiber_gorm_starter_test; do sleep 2; done'
         fi
     
+    # Step 7: Run tests with race detection and coverage
     - name: Run tests
       run: go test -v -race -coverprofile=coverage.out ./...
+      # -v: verbose output
+      # -race: enable race detector
+      # -coverprofile: generate coverage report
+      # ./...: test all packages
     
+    # Step 8: Upload coverage report to Codecov (only once per build)
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
-      if: matrix.db == 'mysql'  # Only upload once
+      if: matrix.db == 'mysql'  # Only upload once to avoid duplicates
       with:
         file: ./coverage.out
         flags: unittests
         name: codecov-umbrella
 
-  # Build and security scan
+  # Job 3: Build application and run security scans
   build:
     name: Build
     runs-on: ubuntu-latest
-    needs: [lint, test]
+    needs: [lint, test]  # Only run after lint and test jobs succeed
     steps:
+    # Steps 1-3: Same setup as previous jobs
     - uses: actions/checkout@v4
     
     - name: Set up Go
@@ -161,28 +194,42 @@ jobs:
     - name: Install dependencies
       run: go mod download
     
+    # Step 4: Build optimized static binary
     - name: Build application
       run: |
         CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
           -ldflags='-w -s -extldflags "-static"' \
           -a -installsuffix cgo \
           -o main cmd/server/main.go
+        # CGO_ENABLED=0: Disable CGO for static linking
+        # GOOS=linux GOARCH=amd64: Target Linux AMD64
+        # -ldflags='-w -s': Strip debug info and symbol table
+        # -extldflags "-static": Create static binary
+        # -a: Force rebuild of packages
+        # -installsuffix cgo: Add suffix to package installation directory
     
+    # Step 5: Run security scanning with GoSec
     - name: Run GoSec Security Scanner
       uses: securecodewarrior/github-action-gosec@master
       with:
         args: '-no-fail -fmt sarif -out gosec.sarif ./...'
+        # -no-fail: Don't fail the build on security issues
+        # -fmt sarif: Output in SARIF format for GitHub Security tab
+        # -out gosec.sarif: Output file name
+        # ./...: Scan all packages
     
+    # Step 6: Upload security scan results to GitHub Security tab
     - name: Upload SARIF file
       uses: github/codeql-action/upload-sarif@v2
       with:
         sarif_file: gosec.sarif
 
-  # Swagger documentation generation check
+  # Job 4: Check Swagger documentation is up to date
   swagger:
     name: Swagger Documentation
     runs-on: ubuntu-latest
     steps:
+    # Steps 1-2: Basic setup
     - uses: actions/checkout@v4
     
     - name: Set up Go
@@ -190,38 +237,46 @@ jobs:
       with:
         go-version: ${{ env.GO_VERSION }}
     
+    # Step 3: Install Swagger documentation generator
     - name: Install swag
       run: go install github.com/swaggo/swag/cmd/swag@latest
     
+    # Step 4: Generate Swagger documentation
     - name: Generate swagger docs
       run: swag init -g cmd/server/main.go -o ./docs
+      # -g: Entry point file
+      # -o: Output directory
     
+    # Step 5: Check if generated docs differ from committed docs
     - name: Check for changes
       run: |
         git diff --exit-code docs/ || (echo "Swagger docs are not up to date. Please run 'make swag' and commit the changes." && exit 1)
 
-  # Docker build test
+  # Job 5: Test Docker build
   docker:
     name: Docker Build
     runs-on: ubuntu-latest
-    needs: [build]
+    needs: [build]  # Only run after build job succeeds
     steps:
+    # Step 1: Checkout source code
     - uses: actions/checkout@v4
     
+    # Step 2: Set up Docker Buildx for advanced build features
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
     
+    # Step 3: Build Docker image (test only, don't push)
     - name: Build Docker image
       uses: docker/build-push-action@v5
       with:
-        context: .
-        file: ./Dockerfile
-        push: false
-        tags: fiber-gorm-starter:latest
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
+        context: .              # Build context (current directory)
+        file: ./Dockerfile      # Dockerfile location
+        push: false            # Don't push to registry (test build only)
+        tags: fiber-gorm-starter:latest  # Image tag
+        cache-from: type=gha   # Use GitHub Actions cache for layers
+        cache-to: type=gha,mode=max      # Save layers to GitHub Actions cache
     
-    # Future: Add image security scanning
+    # Future enhancement: Container security scanning (currently commented out)
     # - name: Run Trivy vulnerability scanner
     #   uses: aquasecurity/trivy-action@master
     #   with:
@@ -236,7 +291,7 @@ jobs:
 
 # Future CI/CD enhancements:
 # 1. Add performance testing with k6
-# 2. Add dependency vulnerability scanning
+# 2. Add dependency vulnerability scanning  
 # 3. Add container image signing
 # 4. Add deployment to staging environment
 # 5. Add integration tests with real databases
