@@ -2,6 +2,7 @@
 package middleware
 
 import (
+	"crypto/subtle"
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
@@ -25,13 +26,13 @@ func APIKey(cfg *config.Config) fiber.Handler {
 		}
 
 		// Bearer 토큰 형식 확인 / Check Bearer token format
-		if !strings.HasPrefix(authHeader, "Bearer ") {
+		apiKey, ok := bearerAPIKey(authHeader)
+		if !ok {
 			return resp.Unauthorized(c, "Invalid authorization header format")
 		}
 
 		// API 키 추출 및 검증 / Extract and validate API key
-		apiKey := strings.TrimPrefix(authHeader, "Bearer ")
-		if apiKey != cfg.APIKey {
+		if !validAPIKey(apiKey, cfg.APIKey) {
 			return resp.Unauthorized(c, "Invalid API key")
 		}
 
@@ -55,13 +56,13 @@ func OptionalAPIKey(cfg *config.Config) fiber.Handler {
 		}
 
 		// Bearer 토큰 형식 확인 / Check Bearer token format
-		if !strings.HasPrefix(authHeader, "Bearer ") {
+		apiKey, ok := bearerAPIKey(authHeader)
+		if !ok {
 			return resp.Unauthorized(c, "Invalid authorization header format")
 		}
 
 		// API 키 추출 및 검증 / Extract and validate API key
-		apiKey := strings.TrimPrefix(authHeader, "Bearer ")
-		if apiKey != cfg.APIKey {
+		if !validAPIKey(apiKey, cfg.APIKey) {
 			return resp.Unauthorized(c, "Invalid API key")
 		}
 
@@ -69,4 +70,19 @@ func OptionalAPIKey(cfg *config.Config) fiber.Handler {
 		c.Locals("authenticated", true)
 		return c.Next()
 	}
+}
+
+func bearerAPIKey(authHeader string) (string, bool) {
+	apiKey, ok := strings.CutPrefix(authHeader, "Bearer ")
+	if !ok || apiKey == "" {
+		return "", false
+	}
+	return apiKey, true
+}
+
+func validAPIKey(provided string, expected string) bool {
+	if provided == "" || expected == "" {
+		return false
+	}
+	return subtle.ConstantTimeCompare([]byte(provided), []byte(expected)) == 1
 }

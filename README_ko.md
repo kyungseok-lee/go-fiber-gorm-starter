@@ -280,6 +280,8 @@ docker compose down
 | `DB_MAX_IDLE` | 최대 유휴 연결 수 | `10` |
 | `DB_MAX_LIFETIME` | 연결 최대 생존 시간 | `300s` |
 | `API_KEY` | 인증용 API 키 | `` |
+| `CORS_ALLOWED_ORIGINS` | prod에서 허용할 CORS 오리진 목록(쉼표 구분) | `` |
+| `CORS_ALLOW_CREDENTIALS` | prod CORS 오리진에 credential 요청 허용 | `false` |
 | `LOG_LEVEL` | 로깅 레벨 | `info` |
 | `METRICS_ENABLED` | Prometheus 메트릭 활성화 | `true` |
 | `PPROF_ENABLED` | pprof 엔드포인트 활성화 | `false` |
@@ -341,13 +343,15 @@ PPROF_ENABLED=true
 
 ### CORS 정책
 - 개발환경: 모든 오리진 허용
-- 프로덕션: 특정 도메인으로 제한 (미들웨어에서 설정)
+- 프로덕션: `CORS_ALLOWED_ORIGINS`가 명시되지 않으면 브라우저 오리진을 허용하지 않으며, `prod`에서 wildcard `*`는 거부됩니다
 
 ### API 인증
 간단한 API 키 인증 (JWT로 확장 가능):
 ```bash
 curl -H "Authorization: Bearer your-api-key" http://localhost:8080/v1/users
 ```
+
+`ENV=prod`에서는 placeholder가 아닌 `API_KEY`와 기본값이 아닌 `DB_PASS`가 있어야 시작됩니다.
 
 ## 성능 최적화
 

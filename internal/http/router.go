@@ -64,7 +64,7 @@ func (r *Router) Setup() {
 	r.app.Use(middleware.Recover())
 
 	// 보안 헤더 미들웨어 / Security headers middleware
-	r.app.Use(middleware.SecureHeaders())
+	r.app.Use(middleware.SecureHeaders(r.cfg))
 
 	// 요청 ID 미들웨어 / Request ID middleware
 	r.app.Use(middleware.RequestID())

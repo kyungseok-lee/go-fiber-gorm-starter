@@ -16,9 +16,14 @@ func CORS(cfg *config.Config) fiber.Handler {
 
 	// 프로덕션 환경에서는 특정 도메인만 허용 / Allow only specific domains in production
 	if cfg.IsProd() {
-		corsConfig.AllowOrigins = "https://yourdomain.com,https://api.yourdomain.com"
-		corsConfig.AllowCredentials = true
-		// TODO: 실제 프로덕션 도메인으로 변경 필요 / Need to change to actual production domains
+		if cfg.CORSAllowedOrigins == "" {
+			corsConfig.AllowOriginsFunc = func(_ string) bool {
+				return false
+			}
+		} else {
+			corsConfig.AllowOrigins = cfg.CORSAllowedOrigins
+			corsConfig.AllowCredentials = cfg.CORSAllowCredentials
+		}
 	} else {
 		// 개발환경에서는 모든 오리진 허용 / Allow all origins in development
 		corsConfig.AllowOrigins = "*"

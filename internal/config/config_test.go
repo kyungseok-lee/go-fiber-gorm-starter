@@ -9,12 +9,79 @@ import (
 )
 
 func TestLoadParsesDurationValues(t *testing.T) {
+	t.Setenv("ENV", "local")
 	t.Setenv("DB_MAX_LIFETIME", "300s")
 
 	cfg, err := Load()
 
 	require.NoError(t, err)
 	assert.Equal(t, 300*time.Second, cfg.DBMaxLifetime)
+}
+
+func TestLoadRejectsUnsafeProductionDefaults(t *testing.T) {
+	testCases := []struct {
+		name          string
+		apiKey        string
+		dbPass        string
+		corsOrigins   string
+		errorContains string
+	}{
+		{
+			name:          "missing api key",
+			dbPass:        "strong-db-pass",
+			errorContains: "API_KEY",
+		},
+		{
+			name:          "placeholder api key",
+			apiKey:        "your-api-key-here",
+			dbPass:        "strong-db-pass",
+			errorContains: "API_KEY",
+		},
+		{
+			name:          "default database password",
+			apiKey:        "strong-api-key",
+			dbPass:        "password",
+			errorContains: "DB_PASS",
+		},
+		{
+			name:          "wildcard cors origin",
+			apiKey:        "strong-api-key",
+			dbPass:        "strong-db-pass",
+			corsOrigins:   "*",
+			errorContains: "CORS_ALLOWED_ORIGINS",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Setenv("ENV", "prod")
+			t.Setenv("API_KEY", tc.apiKey)
+			t.Setenv("DB_PASS", tc.dbPass)
+			t.Setenv("CORS_ALLOWED_ORIGINS", tc.corsOrigins)
+
+			cfg, err := Load()
+
+			assert.Nil(t, cfg)
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), tc.errorContains)
+		})
+	}
+}
+
+func TestLoadAcceptsSecureProductionConfig(t *testing.T) {
+	t.Setenv("ENV", "prod")
+	t.Setenv("API_KEY", "strong-api-key")
+	t.Setenv("DB_PASS", "strong-db-pass")
+	t.Setenv("CORS_ALLOWED_ORIGINS", "https://app.example.com")
+	t.Setenv("CORS_ALLOW_CREDENTIALS", "true")
+
+	cfg, err := Load()
+
+	require.NoError(t, err)
+	assert.Equal(t, "strong-api-key", cfg.APIKey)
+	assert.Equal(t, "strong-db-pass", cfg.DBPass)
+	assert.Equal(t, "https://app.example.com", cfg.CORSAllowedOrigins)
+	assert.True(t, cfg.CORSAllowCredentials)
 }
 
 func TestGetDBDSNMySQL(t *testing.T) {

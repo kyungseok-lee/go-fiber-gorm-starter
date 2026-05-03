@@ -15,6 +15,7 @@ on:
 env:
   GO_VERSION: 1.24.0  # Go version to use across all jobs
   GOLANGCI_LINT_VERSION: v1.64.2
+  GOSEC_VERSION: v2.22.2
 
 jobs:
   # Job 1: Code linting and formatting check
@@ -211,17 +212,19 @@ jobs:
     
     # Step 5: Run security scanning with GoSec
     - name: Run GoSec Security Scanner
-      uses: securecodewarrior/github-action-gosec@master
-      with:
-        args: '-no-fail -fmt sarif -out gosec.sarif ./...'
-        # -no-fail: Don't fail the build on security issues
-        # -fmt sarif: Output in SARIF format for GitHub Security tab
-        # -out gosec.sarif: Output file name
-        # ./...: Scan all packages
+      run: |
+        go run github.com/securego/gosec/v2/cmd/gosec@${{ env.GOSEC_VERSION }} \
+          -fmt sarif \
+          -out gosec.sarif \
+          ./...
+      # -fmt sarif: Output in SARIF format for GitHub Security tab
+      # -out gosec.sarif: Output file name
+      # ./...: Scan all packages
     
     # Step 6: Upload security scan results to GitHub Security tab
     - name: Upload SARIF file
       uses: github/codeql-action/upload-sarif@v2
+      if: always()
       with:
         sarif_file: gosec.sarif
 

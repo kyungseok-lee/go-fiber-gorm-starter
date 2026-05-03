@@ -2,8 +2,10 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/caarlos0/env/v11"
@@ -28,7 +30,9 @@ type Config struct {
 	DBMaxLifetime time.Duration `env:"DB_MAX_LIFETIME" envDefault:"300s"`
 
 	// Security settings
-	APIKey string `env:"API_KEY" envDefault:""`
+	APIKey               string `env:"API_KEY" envDefault:""`
+	CORSAllowedOrigins   string `env:"CORS_ALLOWED_ORIGINS" envDefault:""`
+	CORSAllowCredentials bool   `env:"CORS_ALLOW_CREDENTIALS" envDefault:"false"`
 
 	// Logging settings
 	LogLevel string `env:"LOG_LEVEL" envDefault:"info"`
@@ -46,7 +50,29 @@ func Load() (*Config, error) {
 	if err := env.Parse(cfg); err != nil {
 		return nil, err
 	}
+	if err := cfg.Validate(); err != nil {
+		return nil, err
+	}
 	return cfg, nil
+}
+
+// Validate checks configuration values that are unsafe to run with.
+func (c *Config) Validate() error {
+	if !c.IsProd() {
+		return nil
+	}
+
+	if c.APIKey == "" || c.APIKey == "your-api-key-here" {
+		return errors.New("API_KEY must be set to a non-placeholder value in prod")
+	}
+	if c.DBPass == "" || c.DBPass == "password" {
+		return errors.New("DB_PASS must be set to a non-default value in prod")
+	}
+	if hasExactOrigin(c.CORSAllowedOrigins, "*") {
+		return errors.New("CORS_ALLOWED_ORIGINS cannot use wildcard origins in prod")
+	}
+
+	return nil
 }
 
 // IsDev 개발 환경인지 확인 / Check if running in development environment
@@ -57,6 +83,15 @@ func (c *Config) IsDev() bool {
 // IsProd 프로덕션 환경인지 확인 / Check if running in production environment
 func (c *Config) IsProd() bool {
 	return c.Env == "prod"
+}
+
+func hasExactOrigin(origins string, target string) bool {
+	for _, origin := range strings.Split(origins, ",") {
+		if strings.TrimSpace(origin) == target {
+			return true
+		}
+	}
+	return false
 }
 
 // GetDBDSN 데이터베이스 DSN 생성 / Generate database DSN

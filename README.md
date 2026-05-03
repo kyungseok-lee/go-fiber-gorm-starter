@@ -280,6 +280,8 @@ docker compose down
 | `DB_MAX_IDLE` | Max idle connections | `10` |
 | `DB_MAX_LIFETIME` | Connection max lifetime | `300s` |
 | `API_KEY` | API key for authentication | `` |
+| `CORS_ALLOWED_ORIGINS` | Comma-separated allowed CORS origins for prod | `` |
+| `CORS_ALLOW_CREDENTIALS` | Allow credentialed CORS requests for prod origins | `false` |
 | `LOG_LEVEL` | Logging level | `info` |
 | `METRICS_ENABLED` | Enable Prometheus metrics | `true` |
 | `PPROF_ENABLED` | Enable pprof endpoints | `false` |
@@ -341,13 +343,15 @@ Access profiling endpoints at `/debug/pprof/`. The router only mounts these endp
 
 ### CORS Policy
 - Development: Allow all origins
-- Production: Restricted to specific domains (configure in middleware)
+- Production: Deny browser origins unless `CORS_ALLOWED_ORIGINS` is explicitly set; wildcard `*` is rejected in `prod`
 
 ### API Authentication
 Simple API key authentication (expandable to JWT):
 ```bash
 curl -H "Authorization: Bearer your-api-key" http://localhost:8080/v1/users
 ```
+
+When `ENV=prod`, startup requires a non-placeholder `API_KEY` and a non-default `DB_PASS`.
 
 ## Performance Optimization
 

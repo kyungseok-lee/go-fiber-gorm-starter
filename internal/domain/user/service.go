@@ -38,13 +38,13 @@ func (s *service) Create(req *CreateUserRequest) (*User, error) {
 	// 이메일 중복 확인 / Check email duplication
 	existingUser, err := s.repo.GetByEmail(req.Email)
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-		logger.Error("Failed to check email duplication", zap.Error(err), zap.String("email", req.Email))
+		logger.Error("Failed to check email duplication", zap.Error(err))
 		return nil, fmt.Errorf("failed to check email duplication: %w", err)
 	}
 
 	if existingUser != nil {
-		logger.Warn("Email already exists", zap.String("email", req.Email))
-		return nil, fmt.Errorf("%w: %s", ErrEmailAlreadyExists, req.Email)
+		logger.Warn("Email already exists")
+		return nil, ErrEmailAlreadyExists
 	}
 
 	// 사용자 모델 생성 / Create user model
@@ -52,16 +52,14 @@ func (s *service) Create(req *CreateUserRequest) (*User, error) {
 
 	// 사용자 생성 / Create user
 	if err := s.repo.Create(user); err != nil {
-		logger.Error("Failed to create user", zap.Error(err), zap.String("email", req.Email))
+		logger.Error("Failed to create user", zap.Error(err))
 		if errors.Is(err, gorm.ErrDuplicatedKey) {
-			return nil, fmt.Errorf("%w: %s", ErrEmailAlreadyExists, req.Email)
+			return nil, ErrEmailAlreadyExists
 		}
 		return nil, fmt.Errorf("failed to create user: %w", err)
 	}
 
-	logger.Info("User created successfully",
-		zap.Uint("user_id", user.ID),
-		zap.String("email", user.Email))
+	logger.Info("User created successfully", zap.Uint("user_id", user.ID))
 
 	return user, nil
 }
@@ -113,8 +111,8 @@ func (s *service) Update(id uint, req *UpdateUserRequest) (*User, error) {
 		}
 
 		if existingUser != nil {
-			logger.Warn("Email already exists for update", zap.String("email", *req.Email))
-			return nil, fmt.Errorf("%w: %s", ErrEmailAlreadyExists, *req.Email)
+			logger.Warn("Email already exists for update")
+			return nil, ErrEmailAlreadyExists
 		}
 	}
 
@@ -125,7 +123,7 @@ func (s *service) Update(id uint, req *UpdateUserRequest) (*User, error) {
 	if err := s.repo.Update(user); err != nil {
 		logger.Error("Failed to update user", zap.Error(err))
 		if errors.Is(err, gorm.ErrDuplicatedKey) {
-			return nil, fmt.Errorf("%w: %s", ErrEmailAlreadyExists, user.Email)
+			return nil, ErrEmailAlreadyExists
 		}
 		return nil, fmt.Errorf("failed to update user: %w", err)
 	}

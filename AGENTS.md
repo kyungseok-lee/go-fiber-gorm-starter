@@ -36,4 +36,4 @@ Pull requests should include a summary, linked issue when available, migration o
 
 ## Security & Configuration Tips
 
-Do not commit `.env`, credentials, generated binaries, coverage artifacts, `.omc/`, or `.serena/`. Use `.env.example` for new configuration keys, and express duration values with Go duration units such as `300s`. When changing database behavior, update migrations and verify both MySQL and PostgreSQL paths when practical.
+Do not commit `.env`, credentials, generated binaries, coverage artifacts, `.omc/`, or `.serena/`. Use `.env.example` for new configuration keys, and express duration values with Go duration units such as `300s`. Production config must not rely on placeholder `API_KEY`, default `DB_PASS=password`, or wildcard CORS origins. When changing database behavior, update migrations and verify both MySQL and PostgreSQL paths when practical.
