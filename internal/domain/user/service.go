@@ -40,7 +40,7 @@ func (s *service) Create(req *CreateUserRequest) (*User, error) {
 
 	if existingUser != nil {
 		logger.Warn("Email already exists", zap.String("email", req.Email))
-		return nil, fmt.Errorf("email already exists: %s", req.Email)
+		return nil, fmt.Errorf("%w: %s", ErrEmailAlreadyExists, req.Email)
 	}
 
 	// 사용자 모델 생성 / Create user model
@@ -49,6 +49,9 @@ func (s *service) Create(req *CreateUserRequest) (*User, error) {
 	// 사용자 생성 / Create user
 	if err := s.repo.Create(user); err != nil {
 		logger.Error("Failed to create user", zap.Error(err), zap.String("email", req.Email))
+		if errors.Is(err, gorm.ErrDuplicatedKey) {
+			return nil, fmt.Errorf("%w: %s", ErrEmailAlreadyExists, req.Email)
+		}
 		return nil, fmt.Errorf("failed to create user: %w", err)
 	}
 
@@ -67,7 +70,7 @@ func (s *service) GetByID(id uint) (*User, error) {
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			logger.Warn("User not found", zap.Uint("user_id", id))
-			return nil, fmt.Errorf("user not found with id %d", id)
+			return nil, fmt.Errorf("%w with id %d", ErrUserNotFound, id)
 		}
 		logger.Error("Failed to get user", zap.Error(err))
 		return nil, fmt.Errorf("failed to get user: %w", err)
@@ -87,7 +90,7 @@ func (s *service) Update(id uint, req *UpdateUserRequest) (*User, error) {
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			logger.Warn("User not found for update", zap.Uint("user_id", id))
-			return nil, fmt.Errorf("user not found with id %d", id)
+			return nil, fmt.Errorf("%w with id %d", ErrUserNotFound, id)
 		}
 		logger.Error("Failed to get user for update", zap.Error(err))
 		return nil, fmt.Errorf("failed to get user for update: %w", err)
@@ -103,7 +106,7 @@ func (s *service) Update(id uint, req *UpdateUserRequest) (*User, error) {
 
 		if existingUser != nil {
 			logger.Warn("Email already exists for update", zap.String("email", *req.Email))
-			return nil, fmt.Errorf("email already exists: %s", *req.Email)
+			return nil, fmt.Errorf("%w: %s", ErrEmailAlreadyExists, *req.Email)
 		}
 	}
 
@@ -113,6 +116,9 @@ func (s *service) Update(id uint, req *UpdateUserRequest) (*User, error) {
 	// 사용자 업데이트 / Update user
 	if err := s.repo.Update(user); err != nil {
 		logger.Error("Failed to update user", zap.Error(err))
+		if errors.Is(err, gorm.ErrDuplicatedKey) {
+			return nil, fmt.Errorf("%w: %s", ErrEmailAlreadyExists, user.Email)
+		}
 		return nil, fmt.Errorf("failed to update user: %w", err)
 	}
 
@@ -136,7 +142,7 @@ func (s *service) Delete(id uint) error {
 
 	if !exists {
 		logger.Warn("User not found for delete", zap.Uint("user_id", id))
-		return fmt.Errorf("user not found with id %d", id)
+		return fmt.Errorf("%w with id %d", ErrUserNotFound, id)
 	}
 
 	// 사용자 삭제 / Delete user

@@ -7,6 +7,9 @@ GOGET=$(GOCMD) get
 GOMOD=$(GOCMD) mod
 GOFMT=gofmt
 GOVET=$(GOCMD) vet
+GO_TOOLCHAIN=go1.24.0
+GOLANGCI_LINT_VERSION=v1.64.2
+GOLANGCI_LINT=GOTOOLCHAIN=$(GO_TOOLCHAIN) $(GOCMD) run github.com/golangci/golangci-lint/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
 
 # Build parameters
 BINARY_NAME=fiber-gorm-starter
@@ -106,13 +109,7 @@ vet:
 # Run linter (requires golangci-lint)
 lint:
 	@echo "Running linter..."
-	@if command -v golangci-lint > /dev/null; then \
-		golangci-lint run --timeout=5m; \
-	else \
-		echo "golangci-lint not found. Please install it first."; \
-		echo "Installation: https://golangci-lint.run/usage/install/"; \
-		exit 1; \
-	fi
+	$(GOLANGCI_LINT) run --timeout=5m
 
 # Run all checks (format, vet, lint, test, build)
 check: fmt vet lint test build
@@ -243,7 +240,7 @@ install-tools:
 	$(GOCMD) install github.com/cosmtrek/air@latest
 	$(GOCMD) install github.com/swaggo/swag/cmd/swag@latest
 	@echo "Installing golangci-lint..."
-	@curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(shell go env GOPATH)/bin v1.55.2
+	@curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(shell go env GOPATH)/bin $(GOLANGCI_LINT_VERSION)
 	@echo "Tools installed successfully!"
 
 ## Environment setup

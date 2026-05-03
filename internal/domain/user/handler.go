@@ -7,14 +7,8 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"go.uber.org/zap"
-	"gorm.io/gorm"
 
 	"github.com/kyungseok-lee/go-fiber-gorm-starter/pkg/resp"
-)
-
-const (
-	errEmailAlreadyExists = "email already exists"
-	errUserNotFound       = "user not found"
 )
 
 // Handler 사용자 HTTP 핸들러 / User HTTP handler
@@ -65,9 +59,7 @@ func (h *Handler) Create(c *fiber.Ctx) error {
 
 	user, err := h.service.Create(&req)
 	if err != nil {
-		if errors.Is(err, gorm.ErrDuplicatedKey) ||
-			(err.Error() != "" && (err.Error() == errEmailAlreadyExists ||
-				(len(err.Error()) > 20 && err.Error()[:20] == errEmailAlreadyExists))) {
+		if errors.Is(err, ErrEmailAlreadyExists) {
 			return resp.Conflict(c, "Email already exists")
 		}
 		zap.L().Error("Failed to create user", zap.Error(err))
@@ -97,9 +89,7 @@ func (h *Handler) GetByID(c *fiber.Ctx) error {
 
 	user, err := h.service.GetByID(uint(id))
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) ||
-			(err.Error() != "" && (err.Error() == errUserNotFound ||
-				len(err.Error()) > 15 && err.Error()[:15] == errUserNotFound)) {
+		if errors.Is(err, ErrUserNotFound) {
 			return resp.NotFound(c, "User not found")
 		}
 		zap.L().Error("Failed to get user", zap.Error(err), zap.Uint64("user_id", id))
@@ -144,14 +134,10 @@ func (h *Handler) Update(c *fiber.Ctx) error {
 
 	user, err := h.service.Update(uint(id), &req)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) ||
-			(err.Error() != "" && (err.Error() == errUserNotFound ||
-				len(err.Error()) > 15 && err.Error()[:15] == errUserNotFound)) {
+		if errors.Is(err, ErrUserNotFound) {
 			return resp.NotFound(c, "User not found")
 		}
-		if errors.Is(err, gorm.ErrDuplicatedKey) ||
-			(err.Error() != "" && (err.Error() == errEmailAlreadyExists ||
-				(len(err.Error()) > 20 && err.Error()[:20] == errEmailAlreadyExists))) {
+		if errors.Is(err, ErrEmailAlreadyExists) {
 			return resp.Conflict(c, "Email already exists")
 		}
 		zap.L().Error("Failed to update user", zap.Error(err), zap.Uint64("user_id", id))
@@ -181,9 +167,7 @@ func (h *Handler) Delete(c *fiber.Ctx) error {
 
 	err = h.service.Delete(uint(id))
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) ||
-			(err.Error() != "" && (err.Error() == errUserNotFound ||
-				len(err.Error()) > 15 && err.Error()[:15] == errUserNotFound)) {
+		if errors.Is(err, ErrUserNotFound) {
 			return resp.NotFound(c, "User not found")
 		}
 		zap.L().Error("Failed to delete user", zap.Error(err), zap.Uint64("user_id", id))

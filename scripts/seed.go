@@ -1,9 +1,9 @@
+// Package main provides the local development database seeding command.
 package main
 
 import (
 	"fmt"
 	"log"
-	"os"
 
 	"github.com/joho/godotenv"
 
@@ -67,7 +67,7 @@ func main() {
 		}
 		if response != "y" && response != "Y" {
 			fmt.Println("Seed operation canceled.")
-			os.Exit(0)
+			return
 		}
 	}
 
@@ -130,7 +130,8 @@ func main() {
 	defer func() {
 		if r := recover(); r != nil {
 			tx.Rollback()
-			log.Fatalf("Seed operation failed with panic: %v", r)
+			log.Printf("Seed operation failed with panic: %v", r)
+			panic(r)
 		}
 	}()
 
@@ -147,7 +148,8 @@ func main() {
 		// 사용자 생성 / Create user
 		if err := tx.Create(seedUser).Error; err != nil {
 			tx.Rollback()
-			log.Fatalf("Failed to create seed user %s: %v", seedUser.Email, err)
+			log.Printf("Failed to create seed user %s: %v", seedUser.Email, err)
+			return
 		}
 
 		fmt.Printf("✅ Created user: %s (%s) - %s\n", seedUser.Name, seedUser.Email, seedUser.Status)
@@ -156,7 +158,8 @@ func main() {
 
 	// 트랜잭션 커밋 / Commit transaction
 	if err := tx.Commit().Error; err != nil {
-		log.Fatalf("Failed to commit seed transaction: %v", err)
+		log.Printf("Failed to commit seed transaction: %v", err)
+		return
 	}
 
 	fmt.Printf("\n🎉 Seed operation completed!\n")

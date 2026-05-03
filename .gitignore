@@ -4,9 +4,9 @@
 *.dll
 *.so
 *.dylib
-main
-fiber-gorm-starter
-server
+/main
+/fiber-gorm-starter
+/server
 
 # Test binary, built with `go test -c`
 *.test
@@ -114,4 +114,6 @@ package-lock.json
 
 # ETC
 .claude/
+.omc/
+.serena/
 .history/

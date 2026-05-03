@@ -127,6 +127,20 @@ func TestService_Create(t *testing.T) {
 			expectedError: true,
 			errorContains: "failed to create user",
 		},
+		{
+			name: "duplicate key during creation",
+			request: &CreateUserRequest{
+				Name:   "Test User",
+				Email:  "race@example.com",
+				Status: StatusActive,
+			},
+			setupMock: func(repo *MockRepository) {
+				repo.On("GetByEmail", "race@example.com").Return(nil, gorm.ErrRecordNotFound)
+				repo.On("Create", mock.AnythingOfType("*user.User")).Return(gorm.ErrDuplicatedKey)
+			},
+			expectedError: true,
+			errorContains: "email already exists",
+		},
 	}
 
 	for _, tc := range testCases {
@@ -145,6 +159,9 @@ func TestService_Create(t *testing.T) {
 				assert.Nil(t, user)
 				if tc.errorContains != "" {
 					assert.Contains(t, err.Error(), tc.errorContains)
+				}
+				if tc.errorContains == "email already exists" {
+					assert.ErrorIs(t, err, ErrEmailAlreadyExists)
 				}
 			} else {
 				assert.NoError(t, err)
@@ -217,6 +234,9 @@ func TestService_GetByID(t *testing.T) {
 				assert.Nil(t, user)
 				if tc.errorContains != "" {
 					assert.Contains(t, err.Error(), tc.errorContains)
+				}
+				if tc.errorContains == "user not found" {
+					assert.ErrorIs(t, err, ErrUserNotFound)
 				}
 			} else {
 				assert.NoError(t, err)
@@ -301,6 +321,26 @@ func TestService_Update(t *testing.T) {
 			expectedError: true,
 			errorContains: "email already exists",
 		},
+		{
+			name:   "duplicate key during update",
+			userID: 1,
+			request: &UpdateUserRequest{
+				Email: &newEmail,
+			},
+			setupMock: func(repo *MockRepository) {
+				existingUser := &User{
+					ID:     1,
+					Name:   "Test User",
+					Email:  "old@example.com",
+					Status: StatusActive,
+				}
+				repo.On("GetByID", uint(1)).Return(existingUser, nil)
+				repo.On("GetByEmail", "updated@example.com").Return(nil, gorm.ErrRecordNotFound)
+				repo.On("Update", mock.AnythingOfType("*user.User")).Return(gorm.ErrDuplicatedKey)
+			},
+			expectedError: true,
+			errorContains: "email already exists",
+		},
 	}
 
 	for _, tc := range testCases {
@@ -319,6 +359,12 @@ func TestService_Update(t *testing.T) {
 				assert.Nil(t, user)
 				if tc.errorContains != "" {
 					assert.Contains(t, err.Error(), tc.errorContains)
+				}
+				switch tc.errorContains {
+				case "user not found":
+					assert.ErrorIs(t, err, ErrUserNotFound)
+				case "email already exists":
+					assert.ErrorIs(t, err, ErrEmailAlreadyExists)
 				}
 			} else {
 				assert.NoError(t, err)
@@ -404,6 +450,9 @@ func TestService_Delete(t *testing.T) {
 				if tc.errorContains != "" {
 					assert.Contains(t, err.Error(), tc.errorContains)
 				}
+				if tc.errorContains == "user not found" {
+					assert.ErrorIs(t, err, ErrUserNotFound)
+				}
 			} else {
 				assert.NoError(t, err)
 			}
@@ -448,7 +497,8 @@ func TestService_List(t *testing.T) {
 				Limit:  10,
 			},
 			setupMock: func(repo *MockRepository) {
-				repo.On("List", mock.AnythingOfType("*user.ListUsersQuery")).Return(nil, int64(0), errors.New("database connection error"))
+				repo.On("List", mock.AnythingOfType("*user.ListUsersQuery")).
+					Return(nil, int64(0), errors.New("database connection error"))
 			},
 			expectedError: true,
 			errorContains: "failed to list users",

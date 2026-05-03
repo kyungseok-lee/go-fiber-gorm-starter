@@ -2,6 +2,8 @@
 package config
 
 import (
+	"fmt"
+	"net/url"
 	"time"
 
 	"github.com/caarlos0/env/v11"
@@ -61,13 +63,23 @@ func (c *Config) IsProd() bool {
 func (c *Config) GetDBDSN() string {
 	switch c.DBDriver {
 	case "postgres":
-		return "host=" + c.DBHost + " port=" + c.DBPort + " user=" + c.DBUser +
-			" password=" + c.DBPass + " dbname=" + c.DBName + " sslmode=" + c.DBSSLMode +
-			" TimeZone=Asia/Seoul"
+		return fmt.Sprintf(
+			"host=%s port=%s user=%s password=%s dbname=%s sslmode=%s TimeZone=Asia/Seoul",
+			c.DBHost,
+			c.DBPort,
+			c.DBUser,
+			c.DBPass,
+			c.DBName,
+			c.DBSSLMode,
+		)
 	case "mysql":
 		fallthrough
 	default:
-		return c.DBUser + ":" + c.DBPass + "@tcp(" + c.DBHost + ":" + c.DBPort + ")/" +
-			c.DBName + "?charset=utf8mb4&parseTime=True&loc=Asia%2FSeoul"
+		query := url.Values{}
+		query.Set("charset", "utf8mb4")
+		query.Set("parseTime", "True")
+		query.Set("loc", "Asia/Seoul")
+
+		return fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?%s", c.DBUser, c.DBPass, c.DBHost, c.DBPort, c.DBName, query.Encode())
 	}
 }

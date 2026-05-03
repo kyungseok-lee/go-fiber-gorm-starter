@@ -10,8 +10,11 @@ import (
 type Status string
 
 const (
-	StatusActive    Status = "active"
-	StatusInactive  Status = "inactive"
+	// StatusActive indicates an enabled user account.
+	StatusActive Status = "active"
+	// StatusInactive indicates a disabled but retained user account.
+	StatusInactive Status = "inactive"
+	// StatusSuspended indicates a blocked user account.
 	StatusSuspended Status = "suspended"
 )
 
@@ -32,12 +35,12 @@ func (User) TableName() string {
 }
 
 // BeforeCreate 생성 전 훅 / Before create hook
-func (u *User) BeforeCreate(tx *gorm.DB) (err error) {
+func (u *User) BeforeCreate(_ *gorm.DB) error {
 	// 기본 상태 설정 / Set default status
 	if u.Status == "" {
 		u.Status = StatusActive
 	}
-	return
+	return nil
 }
 
 // CreateUserRequest 사용자 생성 요청 구조체 / User creation request structure

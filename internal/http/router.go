@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"go.uber.org/zap"
 	"gorm.io/gorm"
 
 	"github.com/kyungseok-lee/go-fiber-gorm-starter/internal/config"
@@ -138,10 +139,14 @@ func (r *Router) setupV1Routes() {
 // setupPProfRoutes 프로파일링 라우트 설정 / Setup profiling routes
 func (r *Router) setupPProfRoutes() {
 	// pprof 라우트는 보안상 개발환경에서만 활성화하는 것을 권장 / Recommend enabling pprof routes only in development for security
-	if r.cfg.IsDev() {
-		// TODO: net/http/pprof 패키지 통합 / Integrate net/http/pprof package
-		// r.app.Get("/debug/pprof/*", adaptor.HTTPHandler(http.DefaultServeMux))
+	if !r.cfg.IsDev() {
+		zap.L().Warn("PProf routes are disabled outside development")
+		return
 	}
+
+	zap.L().Warn("PProf routes are requested but not implemented")
+	// TODO: net/http/pprof 패키지 통합 / Integrate net/http/pprof package
+	// r.app.Get("/debug/pprof/*", adaptor.HTTPHandler(http.DefaultServeMux))
 }
 
 // setup404Handler 404 에러 핸들러 설정 / Setup 404 error handler

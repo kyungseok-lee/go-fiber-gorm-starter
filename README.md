@@ -19,7 +19,7 @@ A production-ready REST API skeleton built with Go Fiber v2 and GORM, supporting
 
 ### Prerequisites
 
-- Go 1.22+
+- Go 1.24+
 - Docker & Docker Compose
 - Make (optional, for convenience commands)
 
@@ -198,6 +198,14 @@ make fmt
 # Run all checks (lint + test + build)
 make check
 ```
+
+`make lint` and CI use `golangci-lint` v1.64.2. Run `make install-tools` if the linter is not installed locally.
+
+### Runtime Notes
+
+- Database connections are kept open for the process lifetime and closed during graceful shutdown.
+- Duplicate user emails return HTTP `409 Conflict`, including database unique-index races after the service pre-check.
+- Local agent/workspace state such as `.omc/` and `.serena/` is ignored by Git.
 
 ### Code Generation
 

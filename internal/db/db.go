@@ -16,6 +16,13 @@ import (
 	"github.com/kyungseok-lee/go-fiber-gorm-starter/internal/config"
 )
 
+const (
+	secondsPerHour     = 60 * 60
+	seoulUTCOffsetHour = 9
+)
+
+var seoulLocation = time.FixedZone("Asia/Seoul", seoulUTCOffsetHour*secondsPerHour)
+
 // Connect 데이터베이스 연결 / Connect to database
 func Connect(cfg *config.Config) (*gorm.DB, error) {
 	dialector, err := createDialector(cfg)
@@ -59,8 +66,7 @@ func createGormConfig(cfg *config.Config) *gorm.Config {
 	gormConfig := &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Warn),
 		NowFunc: func() time.Time {
-			loc, _ := time.LoadLocation("Asia/Seoul")
-			return time.Now().In(loc)
+			return time.Now().In(seoulLocation)
 		},
 	}
 

@@ -13,7 +13,8 @@ on:
 
 # Global environment variables available to all jobs
 env:
-  GO_VERSION: 1.22  # Go version to use across all jobs
+  GO_VERSION: 1.24.0  # Go version to use across all jobs
+  GOLANGCI_LINT_VERSION: v1.64.2
 
 jobs:
   # Job 1: Code linting and formatting check
@@ -45,7 +46,7 @@ jobs:
     # Step 4: Install golangci-lint (Go linting tool)
     - name: Install golangci-lint
       run: |
-        curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.55.2
+        curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin ${{ env.GOLANGCI_LINT_VERSION }}
     
     # Step 5: Run linting with 5 minute timeout
     - name: Run golangci-lint

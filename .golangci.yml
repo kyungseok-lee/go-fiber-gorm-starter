@@ -5,7 +5,8 @@ run:
   modules-download-mode: readonly
 
 output:
-  format: colored-line-number
+  formats:
+    - format: colored-line-number
   print-issued-lines: true
   print-linter-name: true
 
@@ -19,8 +20,13 @@ linters-settings:
           - github.com/gofiber/fiber/v2
           - github.com/ansrivas/fiberprometheus/v2
           - github.com/google/uuid
+          - github.com/joho/godotenv
           - github.com/swaggo/fiber-swagger
           - github.com/stretchr/testify
+          - go.uber.org/zap
+          - gorm.io/driver/mysql
+          - gorm.io/driver/postgres
+          - gorm.io/gorm
           - github.com/kyungseok-lee/go-fiber-gorm-starter
 
   gci:
@@ -35,19 +41,21 @@ linters-settings:
   goimports:
     local-prefixes: github.com/kyungseok-lee/go-fiber-gorm-starter
   
-  golint:
-    min-confidence: 0.8
-  
   govet:
-    check-shadowing: true
-    enable-all: true
+    enable-all: false
   
   lll:
     line-length: 120
   
-  maligned:
-    suggest-new: true
-  
+  mnd:
+    ignored-numbers:
+      - "0"
+      - "1"
+      - "2"
+      - "10"
+      - "20"
+      - "100"
+
   misspell:
     locale: US
   
@@ -78,13 +86,12 @@ linters-settings:
 linters:
   enable:
     - bodyclose
-    - deadcode
     - depguard
     - dogsled
     - dupl
     - errcheck
     - exhaustive
-    - exportloopref
+    - copyloopvar
     - funlen
     - gochecknoinits
     - goconst
@@ -92,32 +99,28 @@ linters:
     - gocyclo
     - gofmt
     - goimports
-    - golint
-    - gomnd
     - goprintffuncname
     - gosec
     - gosimple
     - govet
     - ineffassign
-    - interfacer
     - lll
     - misspell
+    - mnd
     - nakedret
     - noctx
     - nolintlint
+    - revive
     - rowserrcheck
     - staticcheck
-    - structcheck
     - stylecheck
     - typecheck
     - unconvert
     - unparam
     - unused
-    - varcheck
     - whitespace
 
   disable:
-    - maligned
     - prealloc
     - wsl
 
@@ -137,6 +140,16 @@ issues:
     - linters:
         - lll
       source: "^//go:generate "
+
+    # Struct tags are intentionally dense and cannot be split across lines.
+    - linters:
+        - lll
+      source: "`.*`"
+
+    # The seed command is an operational script; keep the flow linear.
+    - path: scripts/seed\.go
+      linters:
+        - funlen
     
     # Exclude some staticcheck messages
     - linters:

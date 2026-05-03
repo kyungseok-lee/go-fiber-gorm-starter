@@ -1,3 +1,4 @@
+// Package main wires configuration, persistence, routing, and graceful shutdown.
 package main
 
 import (
@@ -54,6 +55,8 @@ func main() {
 
 	cfg := initializeApp()
 	database := setupDatabase(cfg)
+	defer closeDatabase(database)
+
 	app := setupServer(cfg, database)
 
 	runServerWithGracefulShutdown(app, cfg)
@@ -100,15 +103,9 @@ func setupDatabase(cfg *config.Config) *gorm.DB {
 		zap.L().Fatal("Failed to connect to database", zap.Error(err))
 	}
 
-	sqlDB, err := database.DB()
-	if err != nil {
+	if _, err := database.DB(); err != nil {
 		zap.L().Fatal("Failed to get underlying sql.DB", zap.Error(err))
 	}
-	defer func() {
-		if err := sqlDB.Close(); err != nil {
-			zap.L().Error("Failed to close database connection", zap.Error(err))
-		}
-	}()
 
 	// Auto-migrate 테이블 / Auto-migrate tables
 	if err := database.AutoMigrate(&user.User{}); err != nil {
@@ -116,6 +113,19 @@ func setupDatabase(cfg *config.Config) *gorm.DB {
 	}
 
 	return database
+}
+
+// closeDatabase closes the underlying database connection pool during shutdown.
+func closeDatabase(database *gorm.DB) {
+	sqlDB, err := database.DB()
+	if err != nil {
+		zap.L().Error("Failed to get underlying sql.DB", zap.Error(err))
+		return
+	}
+
+	if err := sqlDB.Close(); err != nil {
+		zap.L().Error("Failed to close database connection", zap.Error(err))
+	}
 }
 
 // setupServer 서버 설정 / Setup server
@@ -166,9 +176,7 @@ func runServerWithGracefulShutdown(app *fiber.App, cfg *config.Config) {
 func healthCheck() {
 	// 단순한 HTTP 요청으로 헬스 체크 / Simple HTTP request for health check
 	// 실제 구현에서는 HTTP 클라이언트로 /health 엔드포인트 호출 / In actual implementation, call /health endpoint with HTTP client
-	if err := godotenv.Load(); err != nil {
-		// 헬스 체크에서는 에러 무시 / Ignore error in health check
-	}
+	_ = godotenv.Load()
 
 	cfg, err := config.Load()
 	if err != nil {
