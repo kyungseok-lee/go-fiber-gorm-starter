@@ -11,6 +11,8 @@ import (
 	"github.com/kyungseok-lee/go-fiber-gorm-starter/pkg/resp"
 )
 
+const statusValidationMessage = "Status must be one of: active, inactive, suspended"
+
 // Handler 사용자 HTTP 핸들러 / User HTTP handler
 type Handler struct {
 	service Service
@@ -51,6 +53,9 @@ func (h *Handler) Create(c *fiber.Ctx) error {
 	if len(req.Name) < 2 || len(req.Name) > 100 {
 		return resp.BadRequest(c, "Name must be between 2 and 100 characters")
 	}
+	if req.Status != "" && !req.Status.IsValid() {
+		return resp.BadRequest(c, statusValidationMessage)
+	}
 
 	// TODO: 더 정교한 검증 로직 추가 가능 / Can add more sophisticated validation logic
 	// - Email 형식 검증 (정규표현식)
@@ -61,6 +66,9 @@ func (h *Handler) Create(c *fiber.Ctx) error {
 	if err != nil {
 		if errors.Is(err, ErrEmailAlreadyExists) {
 			return resp.Conflict(c, "Email already exists")
+		}
+		if errors.Is(err, ErrInvalidStatus) {
+			return resp.BadRequest(c, statusValidationMessage)
 		}
 		zap.L().Error("Failed to create user", zap.Error(err))
 		return resp.InternalServerError(c, "Failed to create user")
@@ -131,6 +139,9 @@ func (h *Handler) Update(c *fiber.Ctx) error {
 	if req.Email != nil && *req.Email == "" {
 		return resp.BadRequest(c, "Email cannot be empty")
 	}
+	if req.Status != nil && !req.Status.IsValid() {
+		return resp.BadRequest(c, statusValidationMessage)
+	}
 
 	user, err := h.service.Update(uint(id), &req)
 	if err != nil {
@@ -139,6 +150,9 @@ func (h *Handler) Update(c *fiber.Ctx) error {
 		}
 		if errors.Is(err, ErrEmailAlreadyExists) {
 			return resp.Conflict(c, "Email already exists")
+		}
+		if errors.Is(err, ErrInvalidStatus) {
+			return resp.BadRequest(c, statusValidationMessage)
 		}
 		zap.L().Error("Failed to update user", zap.Error(err), zap.Uint64("user_id", id))
 		return resp.InternalServerError(c, "Failed to update user")
@@ -201,6 +215,9 @@ func (h *Handler) List(c *fiber.Ctx) error {
 
 	// 쿼리 검증 및 기본값 설정 / Validate query and set defaults
 	query.Validate()
+	if query.Status != "" && !query.Status.IsValid() {
+		return resp.BadRequest(c, statusValidationMessage)
+	}
 
 	users, total, err := h.service.List(&query)
 	if err != nil {

@@ -31,6 +31,10 @@ func NewService(repo Repository) Service {
 func (s *service) Create(req *CreateUserRequest) (*User, error) {
 	logger := zap.L().With(zap.String("method", "user.service.Create"))
 
+	if req.Status != "" && !req.Status.IsValid() {
+		return nil, fmt.Errorf("%w: %s", ErrInvalidStatus, req.Status)
+	}
+
 	// 이메일 중복 확인 / Check email duplication
 	existingUser, err := s.repo.GetByEmail(req.Email)
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
@@ -84,6 +88,10 @@ func (s *service) Update(id uint, req *UpdateUserRequest) (*User, error) {
 	logger := zap.L().With(
 		zap.String("method", "user.service.Update"),
 		zap.Uint("user_id", id))
+
+	if req.Status != nil && !req.Status.IsValid() {
+		return nil, fmt.Errorf("%w: %s", ErrInvalidStatus, *req.Status)
+	}
 
 	// 기존 사용자 조회 / Get existing user
 	user, err := s.repo.GetByID(id)
@@ -159,6 +167,13 @@ func (s *service) Delete(id uint) error {
 // List 사용자 목록 조회 / List users
 func (s *service) List(query *ListUsersQuery) ([]*User, int64, error) {
 	logger := zap.L().With(zap.String("method", "user.service.List"))
+
+	if query == nil {
+		query = &ListUsersQuery{}
+	}
+	if query.Status != "" && !query.Status.IsValid() {
+		return nil, 0, fmt.Errorf("%w: %s", ErrInvalidStatus, query.Status)
+	}
 
 	// 쿼리 파라미터 검증 / Validate query parameters
 	query.Validate()

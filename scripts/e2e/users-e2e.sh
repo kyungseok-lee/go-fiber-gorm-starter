@@ -77,9 +77,12 @@ main() {
     exit 1
   fi
 
+  expect_status 400 POST /v1/users "{\"name\":\"Invalid Status\",\"email\":\"invalid-${EMAIL}\",\"status\":\"pending\"}" >/dev/null
   expect_status 409 POST /v1/users "{\"name\":\"E2E User\",\"email\":\"${EMAIL}\",\"status\":\"active\"}" >/dev/null
   expect_status 200 GET "/v1/users/${user_id}" >/dev/null
   expect_status 200 GET "/v1/users?search=${EMAIL}&limit=10" >/dev/null
+  expect_status 400 GET "/v1/users?status=pending" >/dev/null
+  expect_status 400 PUT "/v1/users/${user_id}" '{"status":"pending"}' >/dev/null
   expect_status 200 PUT "/v1/users/${user_id}" '{"name":"E2E User Updated","status":"inactive"}' >/dev/null
   expect_status 204 DELETE "/v1/users/${user_id}" >/dev/null
   expect_status 404 GET "/v1/users/${user_id}" >/dev/null

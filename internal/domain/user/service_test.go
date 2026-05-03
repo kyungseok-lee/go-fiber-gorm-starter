@@ -141,6 +141,17 @@ func TestService_Create(t *testing.T) {
 			expectedError: true,
 			errorContains: "email already exists",
 		},
+		{
+			name: "invalid status",
+			request: &CreateUserRequest{
+				Name:   "Test User",
+				Email:  "test@example.com",
+				Status: Status("pending"),
+			},
+			setupMock:     func(_ *MockRepository) {},
+			expectedError: true,
+			errorContains: "invalid user status",
+		},
 	}
 
 	for _, tc := range testCases {
@@ -162,6 +173,9 @@ func TestService_Create(t *testing.T) {
 				}
 				if tc.errorContains == "email already exists" {
 					assert.ErrorIs(t, err, ErrEmailAlreadyExists)
+				}
+				if tc.errorContains == "invalid user status" {
+					assert.ErrorIs(t, err, ErrInvalidStatus)
 				}
 			} else {
 				assert.NoError(t, err)
@@ -341,6 +355,16 @@ func TestService_Update(t *testing.T) {
 			expectedError: true,
 			errorContains: "email already exists",
 		},
+		{
+			name:   "invalid status",
+			userID: 1,
+			request: &UpdateUserRequest{
+				Status: ptr(Status("pending")),
+			},
+			setupMock:     func(_ *MockRepository) {},
+			expectedError: true,
+			errorContains: "invalid user status",
+		},
 	}
 
 	for _, tc := range testCases {
@@ -365,6 +389,8 @@ func TestService_Update(t *testing.T) {
 					assert.ErrorIs(t, err, ErrUserNotFound)
 				case "email already exists":
 					assert.ErrorIs(t, err, ErrEmailAlreadyExists)
+				case "invalid user status":
+					assert.ErrorIs(t, err, ErrInvalidStatus)
 				}
 			} else {
 				assert.NoError(t, err)
@@ -516,6 +542,29 @@ func TestService_List(t *testing.T) {
 			expectedCount: 0,
 			expectedTotal: 0,
 		},
+		{
+			name:  "nil query uses defaults",
+			query: nil,
+			setupMock: func(repo *MockRepository) {
+				repo.On("List", mock.MatchedBy(func(query *ListUsersQuery) bool {
+					return query.Offset == 0 && query.Limit == 20
+				})).Return([]*User{}, int64(0), nil)
+			},
+			expectedError: false,
+			expectedCount: 0,
+			expectedTotal: 0,
+		},
+		{
+			name: "invalid status filter",
+			query: &ListUsersQuery{
+				Offset: 0,
+				Limit:  10,
+				Status: Status("pending"),
+			},
+			setupMock:     func(_ *MockRepository) {},
+			expectedError: true,
+			errorContains: "invalid user status",
+		},
 	}
 
 	for _, tc := range testCases {
@@ -535,6 +584,9 @@ func TestService_List(t *testing.T) {
 				assert.Zero(t, total)
 				if tc.errorContains != "" {
 					assert.Contains(t, err.Error(), tc.errorContains)
+				}
+				if tc.errorContains == "invalid user status" {
+					assert.ErrorIs(t, err, ErrInvalidStatus)
 				}
 			} else {
 				assert.NoError(t, err)
@@ -565,6 +617,10 @@ func createTestCreateRequest() *CreateUserRequest {
 		Email:  "test@example.com",
 		Status: StatusActive,
 	}
+}
+
+func ptr[T any](v T) *T {
+	return &v
 }
 
 // 벤치마크 테스트 / Benchmark tests

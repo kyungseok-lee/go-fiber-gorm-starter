@@ -158,7 +158,7 @@ docker-up:
 # Start services with PostgreSQL
 docker-up-pg:
 	@echo "Starting services with PostgreSQL..."
-	docker-compose --profile postgres --profile app up -d
+	DB_DRIVER=postgres DB_HOST=postgres DB_PORT=5432 docker-compose --profile postgres --profile app up -d
 
 # Stop all services
 docker-down:

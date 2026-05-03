@@ -15,7 +15,7 @@ Use the Makefile as the primary workflow:
 - `make e2e` runs black-box user API checks against a running server.
 - `make lint` runs `golangci-lint run --timeout=5m`; CI and `make install-tools` use v1.64.2.
 - `make check` runs format, vet, lint, tests, and build.
-- `make docker-up` or `make docker-up-pg` starts MySQL or PostgreSQL stacks.
+- `make docker-up` or `make docker-up-pg` starts MySQL or PostgreSQL stacks; the PostgreSQL target passes the compose DB host/driver overrides for the app container.
 - `make migrate-create name=add_example`, `make migrate-up`, and `make migrate-down` manage migrations.
 
 ## Coding Style & Naming Conventions
@@ -26,7 +26,7 @@ Imports are organized by `goimports`/`gci` with local imports under `github.com/
 
 ## Testing Guidelines
 
-Tests use Go’s testing package with `stretchr/testify`. Keep tests next to implementation files using `*_test.go`, as in `internal/domain/user/service_test.go`. Prefer table-driven tests for service and repository behavior. Run `make test` normally and `make coverage` when changing shared logic. For runtime API changes, start Docker Compose and run `make e2e`.
+Tests use Go’s testing package with `stretchr/testify`. Keep tests next to implementation files using `*_test.go`, as in `internal/domain/user/service_test.go`. Prefer table-driven tests for service and repository behavior; repository tests use in-memory SQLite through GORM. Run `make test` normally and `make coverage` when changing shared logic. For runtime API changes, start Docker Compose and run `make e2e`.
 
 ## Commit & Pull Request Guidelines
 
@@ -36,4 +36,4 @@ Pull requests should include a summary, linked issue when available, migration o
 
 ## Security & Configuration Tips
 
-Do not commit `.env`, credentials, generated binaries, coverage artifacts, `.omc/`, or `.serena/`. Use `.env.example` for new configuration keys. When changing database behavior, update migrations and verify both MySQL and PostgreSQL paths when practical.
+Do not commit `.env`, credentials, generated binaries, coverage artifacts, `.omc/`, or `.serena/`. Use `.env.example` for new configuration keys, and express duration values with Go duration units such as `300s`. When changing database behavior, update migrations and verify both MySQL and PostgreSQL paths when practical.

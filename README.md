@@ -149,7 +149,7 @@ docker-compose --profile mysql --profile app up -d
 
 **With PostgreSQL:**
 ```bash
-docker-compose --profile postgres --profile app up -d
+DB_DRIVER=postgres DB_HOST=postgres DB_PORT=5432 docker-compose --profile postgres --profile app up -d
 ```
 
 ### Building Docker Image
@@ -208,7 +208,9 @@ make e2e
 
 - Database connections are kept open for the process lifetime and closed during graceful shutdown.
 - Duplicate user emails return HTTP `409 Conflict`, including database unique-index races after the service pre-check.
-- Docker Compose supports either `--profile mysql --profile app` or `--profile postgres --profile app`; the app container restarts until its selected database is reachable.
+- User `status` is validated as `active`, `inactive`, or `suspended` on create, update, and list filters; invalid values return HTTP `400 Bad Request`.
+- Docker Compose supports either `docker-compose --profile mysql --profile app` or `DB_DRIVER=postgres DB_HOST=postgres DB_PORT=5432 docker-compose --profile postgres --profile app`; the app container restarts until its selected database is reachable.
+- Docker builds exclude local caches, generated binaries, and agent workspace state from the build context.
 - Local agent/workspace state such as `.omc/` and `.serena/` is ignored by Git.
 
 ### Code Generation
@@ -257,7 +259,7 @@ make e2e
 docker compose down
 ```
 
-`make e2e` covers `/health`, `/ready`, user create/get/list/update/delete, duplicate email conflict, and 404 handling. Set `BASE_URL` when testing a non-default endpoint.
+`make e2e` covers `/health`, `/ready`, user create/get/list/update/delete, invalid status validation, duplicate email conflict, and 404 handling. Set `BASE_URL` when testing a non-default endpoint.
 
 ## Configuration
 
@@ -327,7 +329,7 @@ Enable pprof for debugging (development only):
 PPROF_ENABLED=true
 ```
 
-Access profiling endpoints at `/debug/pprof/`
+Access profiling endpoints at `/debug/pprof/`. The router only mounts these endpoints in `local` or `dev` environments.
 
 ## Security
 

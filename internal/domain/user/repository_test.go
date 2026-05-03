@@ -1,31 +1,32 @@
 package user
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
-func setupTestDB(t *testing.T) {
-	// 테스트용 인메모리 SQLite 데이터베이스 사용 / Use in-memory SQLite database for testing
-	// 실제 구현에서는 testcontainers-go 사용 권장 / Recommend using testcontainers-go in actual implementation
-	// TODO: 실제 테스트 데이터베이스 연결 구현 / Implement actual test database connection
-	t.Skip("Database connection for testing not implemented yet")
+func setupTestDB(t testing.TB) *gorm.DB {
+	t.Helper()
+
+	database, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{
+		Logger: logger.Default.LogMode(logger.Silent),
+	})
+	require.NoError(t, err)
+
+	err = database.AutoMigrate(&User{})
+	require.NoError(t, err)
+
+	return database
 }
 
 func TestRepository_Create(t *testing.T) {
-	setupTestDB(t)
-	var database *gorm.DB
-	if database == nil {
-		return
-	}
-
-	// Auto-migrate for testing
-	err := database.AutoMigrate(&User{})
-	require.NoError(t, err)
-
+	database := setupTestDB(t)
 	repo := NewRepository(database)
 
 	testCases := []struct {
@@ -67,12 +68,7 @@ func TestRepository_Create(t *testing.T) {
 }
 
 func TestRepository_GetByID(t *testing.T) {
-	setupTestDB(t)
-	var database *gorm.DB
-	if database == nil {
-		return
-	}
-
+	database := setupTestDB(t)
 	repo := NewRepository(database)
 
 	// Create a test user first
@@ -117,12 +113,7 @@ func TestRepository_GetByID(t *testing.T) {
 }
 
 func TestRepository_GetByEmail(t *testing.T) {
-	setupTestDB(t)
-	var database *gorm.DB
-	if database == nil {
-		return
-	}
-
+	database := setupTestDB(t)
 	repo := NewRepository(database)
 
 	// Create a test user first
@@ -167,12 +158,7 @@ func TestRepository_GetByEmail(t *testing.T) {
 }
 
 func TestRepository_Update(t *testing.T) {
-	setupTestDB(t)
-	var database *gorm.DB
-	if database == nil {
-		return
-	}
-
+	database := setupTestDB(t)
 	repo := NewRepository(database)
 
 	// Create a test user first
@@ -199,12 +185,7 @@ func TestRepository_Update(t *testing.T) {
 }
 
 func TestRepository_Delete(t *testing.T) {
-	setupTestDB(t)
-	var database *gorm.DB
-	if database == nil {
-		return
-	}
-
+	database := setupTestDB(t)
 	repo := NewRepository(database)
 
 	// Create a test user first
@@ -226,12 +207,7 @@ func TestRepository_Delete(t *testing.T) {
 }
 
 func TestRepository_List(t *testing.T) {
-	setupTestDB(t)
-	var database *gorm.DB
-	if database == nil {
-		return
-	}
-
+	database := setupTestDB(t)
 	repo := NewRepository(database)
 
 	// Create test users
@@ -289,12 +265,7 @@ func TestRepository_List(t *testing.T) {
 }
 
 func TestRepository_Exists(t *testing.T) {
-	setupTestDB(t)
-	var database *gorm.DB
-	if database == nil {
-		return
-	}
-
+	database := setupTestDB(t)
 	repo := NewRepository(database)
 
 	// Create a test user first
@@ -334,34 +305,24 @@ func TestRepository_Exists(t *testing.T) {
 
 // 벤치마크 테스트 / Benchmark tests
 func BenchmarkRepository_Create(b *testing.B) {
-	setupTestDB(&testing.T{})
-	var database *gorm.DB
-	if database == nil {
-		b.Skip("Database not available for benchmarking")
-		return
-	}
-
+	database := setupTestDB(b)
 	repo := NewRepository(database)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		user := &User{
 			Name:   "Benchmark User",
-			Email:  "benchmark@example.com",
+			Email:  fmt.Sprintf("benchmark-%d@example.com", i),
 			Status: StatusActive,
 		}
-		repo.Create(user)
+		if err := repo.Create(user); err != nil {
+			b.Fatal(err)
+		}
 	}
 }
 
 func BenchmarkRepository_GetByID(b *testing.B) {
-	setupTestDB(&testing.T{})
-	var database *gorm.DB
-	if database == nil {
-		b.Skip("Database not available for benchmarking")
-		return
-	}
-
+	database := setupTestDB(b)
 	repo := NewRepository(database)
 
 	// Create a test user
@@ -370,10 +331,12 @@ func BenchmarkRepository_GetByID(b *testing.B) {
 		Email:  "benchmark@example.com",
 		Status: StatusActive,
 	}
-	repo.Create(testUser)
+	require.NoError(b, repo.Create(testUser))
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		repo.GetByID(testUser.ID)
+		if _, err := repo.GetByID(testUser.ID); err != nil {
+			b.Fatal(err)
+		}
 	}
 }

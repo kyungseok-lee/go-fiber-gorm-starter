@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/pprof"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 
@@ -144,9 +145,7 @@ func (r *Router) setupPProfRoutes() {
 		return
 	}
 
-	zap.L().Warn("PProf routes are requested but not implemented")
-	// TODO: net/http/pprof 패키지 통합 / Integrate net/http/pprof package
-	// r.app.Get("/debug/pprof/*", adaptor.HTTPHandler(http.DefaultServeMux))
+	r.app.Use(pprof.New())
 }
 
 // setup404Handler 404 에러 핸들러 설정 / Setup 404 error handler

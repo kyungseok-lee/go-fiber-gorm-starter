@@ -18,6 +18,16 @@ const (
 	StatusSuspended Status = "suspended"
 )
 
+// IsValid reports whether the status is one of the supported persisted values.
+func (s Status) IsValid() bool {
+	switch s {
+	case StatusActive, StatusInactive, StatusSuspended:
+		return true
+	default:
+		return false
+	}
+}
+
 // User 사용자 모델 / User model
 type User struct {
 	ID        uint           `json:"id" gorm:"primarykey"`

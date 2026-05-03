@@ -23,10 +23,12 @@ testdata/
 
 # Build artifacts
 main
+/fiber-gorm-starter
 *.exe
 *.dll
 *.so
 *.dylib
+coverage.html
 
 # OS generated files
 .DS_Store
@@ -72,6 +74,14 @@ k8s/
 # Go specific
 vendor/
 bin/
+go.work
+.cache/
+
+# Local agent/workspace state
+.omc/
+.serena/
+.claude/
+.history/
 
 # Migration files (include only if needed at runtime)
 # migrations/

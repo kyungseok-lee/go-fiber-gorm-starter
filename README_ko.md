@@ -149,7 +149,7 @@ docker-compose --profile mysql --profile app up -d
 
 **PostgreSQL과 함께:**
 ```bash
-docker-compose --profile postgres --profile app up -d
+DB_DRIVER=postgres DB_HOST=postgres DB_PORT=5432 docker-compose --profile postgres --profile app up -d
 ```
 
 ### Docker 이미지 빌드
@@ -208,7 +208,9 @@ make e2e
 
 - 데이터베이스 연결은 프로세스 실행 동안 유지되고 graceful shutdown 시 닫힙니다.
 - 중복 사용자 이메일은 서비스 사전 확인 이후 DB unique index 경합에서 발생해도 HTTP `409 Conflict`로 응답합니다.
-- Docker Compose는 `--profile mysql --profile app` 또는 `--profile postgres --profile app`을 지원하며, 앱 컨테이너는 선택한 DB가 준비될 때까지 재시작됩니다.
+- 사용자 `status`는 생성, 수정, 목록 필터에서 `active`, `inactive`, `suspended`만 허용하며 잘못된 값은 HTTP `400 Bad Request`로 응답합니다.
+- Docker Compose는 `docker-compose --profile mysql --profile app` 또는 `DB_DRIVER=postgres DB_HOST=postgres DB_PORT=5432 docker-compose --profile postgres --profile app`을 지원하며, 앱 컨테이너는 선택한 DB가 준비될 때까지 재시작됩니다.
+- Docker 빌드는 로컬 캐시, 생성된 바이너리, 에이전트 작업 상태를 빌드 컨텍스트에서 제외합니다.
 - `.omc/`, `.serena/` 같은 로컬 에이전트/작업 상태 디렉터리는 Git에서 제외됩니다.
 
 ### 코드 생성
@@ -257,7 +259,7 @@ make e2e
 docker compose down
 ```
 
-`make e2e`는 `/health`, `/ready`, 사용자 생성/조회/목록/수정/삭제, 중복 이메일 충돌, 404 처리를 검증합니다. 기본 URL이 아니면 `BASE_URL`을 설정하세요.
+`make e2e`는 `/health`, `/ready`, 사용자 생성/조회/목록/수정/삭제, 잘못된 status 검증, 중복 이메일 충돌, 404 처리를 검증합니다. 기본 URL이 아니면 `BASE_URL`을 설정하세요.
 
 ## 설정
 
@@ -327,7 +329,7 @@ zap을 사용한 구조화된 로깅:
 PPROF_ENABLED=true
 ```
 
-`/debug/pprof/`에서 프로파일링 엔드포인트에 접근
+`/debug/pprof/`에서 프로파일링 엔드포인트에 접근할 수 있습니다. 라우터는 `local` 또는 `dev` 환경에서만 pprof 엔드포인트를 등록합니다.
 
 ## 보안
 
