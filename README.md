@@ -197,6 +197,9 @@ make fmt
 
 # Run all checks (lint + test + build)
 make check
+
+# Run API e2e tests against a running server
+make e2e
 ```
 
 `make lint` and CI use `golangci-lint` v1.64.2. Run `make install-tools` if the linter is not installed locally.
@@ -205,6 +208,7 @@ make check
 
 - Database connections are kept open for the process lifetime and closed during graceful shutdown.
 - Duplicate user emails return HTTP `409 Conflict`, including database unique-index races after the service pre-check.
+- Docker Compose supports either `--profile mysql --profile app` or `--profile postgres --profile app`; the app container restarts until its selected database is reachable.
 - Local agent/workspace state such as `.omc/` and `.serena/` is ignored by Git.
 
 ### Code Generation
@@ -242,6 +246,18 @@ ENV=test DB_NAME=fiber_gorm_starter_test go test -v ./...
 # Run performance tests
 k6 run scripts/k6/users-smoke.js
 ```
+
+### E2E Tests
+
+Start the app with Docker Compose, then run the black-box API flow:
+
+```bash
+docker compose --profile mysql --profile app up -d --build
+make e2e
+docker compose down
+```
+
+`make e2e` covers `/health`, `/ready`, user create/get/list/update/delete, duplicate email conflict, and 404 handling. Set `BASE_URL` when testing a non-default endpoint.
 
 ## Configuration
 

@@ -24,7 +24,7 @@ DOCKER_TAG=latest
 DB_URL_MYSQL=mysql://user:password@tcp(localhost:3306)/fiber_gorm_starter
 DB_URL_POSTGRES=postgresql://user:password@localhost:5432/fiber_gorm_starter?sslmode=disable
 
-.PHONY: all build clean test coverage deps tidy fmt vet lint run help
+.PHONY: all build clean test coverage e2e deps tidy fmt vet lint run help
 .PHONY: docker-build docker-run docker-up docker-down docker-up-pg
 .PHONY: migrate-up migrate-down migrate-status migrate-create seed swag
 .PHONY: dev prod check install-tools
@@ -93,6 +93,11 @@ coverage:
 bench:
 	@echo "Running benchmarks..."
 	$(GOTEST) -bench=. -benchmem ./...
+
+# Run black-box API e2e tests against a running server
+e2e:
+	@echo "Running e2e tests..."
+	./scripts/e2e/users-e2e.sh
 
 ## Code quality targets
 
@@ -288,6 +293,7 @@ help:
 	@echo "  test         - Run tests"
 	@echo "  coverage     - Run tests with coverage report"
 	@echo "  bench        - Run benchmarks"
+	@echo "  e2e          - Run API e2e tests against a running server"
 	@echo ""
 	@echo "Code quality targets:"
 	@echo "  fmt          - Format code"

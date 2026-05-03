@@ -3,6 +3,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -53,7 +54,9 @@ func main() {
 		return
 	}
 
-	cfg := initializeApp()
+	cfg, appLogger := initializeApp()
+	defer syncLogger(appLogger)
+
 	database := setupDatabase(cfg)
 	defer closeDatabase(database)
 
@@ -63,7 +66,7 @@ func main() {
 }
 
 // initializeApp 앱 초기화 / Initialize application
-func initializeApp() *config.Config {
+func initializeApp() (*config.Config, *zap.Logger) {
 	// .env 파일 로드 / Load .env file
 	if err := godotenv.Load(); err != nil {
 		log.Println("No .env file found, using environment variables")
@@ -80,11 +83,6 @@ func initializeApp() *config.Config {
 	if err != nil {
 		log.Fatalf("Failed to initialize logger: %v", err)
 	}
-	defer func() {
-		if err := logger.Sync(); err != nil {
-			log.Printf("Failed to sync logger: %v", err)
-		}
-	}()
 
 	zap.L().Info("Starting Spindle API Server",
 		zap.String("env", cfg.Env),
@@ -92,7 +90,20 @@ func initializeApp() *config.Config {
 		zap.String("db_driver", cfg.DBDriver),
 	)
 
-	return cfg
+	return cfg, logger
+}
+
+func syncLogger(logger *zap.Logger) {
+	if logger == nil {
+		return
+	}
+
+	if err := logger.Sync(); err != nil {
+		if errors.Is(err, syscall.EINVAL) {
+			return
+		}
+		log.Printf("Failed to sync logger: %v", err)
+	}
 }
 
 // setupDatabase 데이터베이스 설정 / Setup database

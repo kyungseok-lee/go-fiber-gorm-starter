@@ -197,6 +197,9 @@ make fmt
 
 # 모든 검사 실행 (lint + test + build)
 make check
+
+# 실행 중인 서버를 대상으로 API e2e 테스트 실행
+make e2e
 ```
 
 `make lint`와 CI는 `golangci-lint` v1.64.2를 사용합니다. 로컬에 린터가 없다면 `make install-tools`를 실행하세요.
@@ -205,6 +208,7 @@ make check
 
 - 데이터베이스 연결은 프로세스 실행 동안 유지되고 graceful shutdown 시 닫힙니다.
 - 중복 사용자 이메일은 서비스 사전 확인 이후 DB unique index 경합에서 발생해도 HTTP `409 Conflict`로 응답합니다.
+- Docker Compose는 `--profile mysql --profile app` 또는 `--profile postgres --profile app`을 지원하며, 앱 컨테이너는 선택한 DB가 준비될 때까지 재시작됩니다.
 - `.omc/`, `.serena/` 같은 로컬 에이전트/작업 상태 디렉터리는 Git에서 제외됩니다.
 
 ### 코드 생성
@@ -242,6 +246,18 @@ ENV=test DB_NAME=fiber_gorm_starter_test go test -v ./...
 # 성능 테스트 실행
 k6 run scripts/k6/users-smoke.js
 ```
+
+### E2E 테스트
+
+Docker Compose로 앱을 시작한 뒤 블랙박스 API 흐름을 실행합니다:
+
+```bash
+docker compose --profile mysql --profile app up -d --build
+make e2e
+docker compose down
+```
+
+`make e2e`는 `/health`, `/ready`, 사용자 생성/조회/목록/수정/삭제, 중복 이메일 충돌, 404 처리를 검증합니다. 기본 URL이 아니면 `BASE_URL`을 설정하세요.
 
 ## 설정
 
